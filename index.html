@@ -98,25 +98,43 @@ const seq=(n,d=.15,type)=>n.forEach((f,i)=>tone(f,d+.1,type,i*d));
 const sfx={star:()=>tone(900,.08),right:()=>seq([523,659,784,1047]),wrong:()=>tone(160,.35,'sawtooth',0,.07),hit:()=>seq([300,200,130],.1,'square'),win:()=>seq([523,659,784,1047,784,1047,1319],.14)};
 function music(on){clearInterval(mus);if(!on)return;const n=[523,587,659,784,880,784,659,587];let i=0;mus=setInterval(()=>tone(n[i++%8],.2,'sine',0,.04),260)}
 
-/* ===================== 3. ENTRY GATE & ACCESS CONTROL =====================
-   Each whitelisted student has {name, token, expires}. A link looks like
-   ?token=abc123&student=Sarah. Access is granted ONLY if a student record matches BOTH
-   token and name AND the link has not expired. Anything else shows "Access Denied".
-   (Client-only check: a server should verify tokens for real security.) */
-const rnd=()=>Array.from(crypto.getRandomValues(new Uint8Array(6)),b=>(b%36).toString(36)).join('');
-const linkFor=s=>location.href.split(/[?#]/)[0]+'?token='+s.token+'&student='+encodeURIComponent(s.name);
-function boot(){
-  const p=new URLSearchParams(location.search),tok=p.get('token'),who=p.get('student');
-  if(!tok&&!who)return show('home');
-  const s=db.students.find(x=>x.token===tok&&x.name===who);
-  (s&&(!s.expires||Date.now()<s.expires))?gate(s):show('denied');
+/* ===================== 3. SELF-CONTAINED SIGNED LINKS =====================
+   A link looks like  ?student=Sarah&code=<payload>.<signature>
+   payload   = base64url JSON {e: expiry ms (0 = never), q: {q: questions, t: theme}}
+   signature = HMAC-SHA256(SECRET, name + "|" + payload), shortened.
+   On ANY device the page re-computes the signature from the name in the URL; if it matches
+   (and the link hasn't expired) the student is let in and the quiz is read from the link
+   itself. Nothing is looked up in localStorage, so links work on phones and tablets.
+   LIMITS: SECRET is visible in this file, so this stops edited names/expiry, not a
+   determined student. Change SECRET before class. Real security needs a server. */
+const SECRET='change-me-before-class';
+const b64=s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const unb64=s=>decodeURIComponent(escape(atob(s.replace(/-/g,'+').replace(/_/g,'/'))));
+async function sign(msg){const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(SECRET),{name:'HMAC',hash:'SHA-256'},false,['sign']);
+  const h=new Uint8Array(await crypto.subtle.sign('HMAC',k,new TextEncoder().encode(msg)));return Array.from(h.slice(0,12),x=>x.toString(16).padStart(2,'0')).join('')}
+let cfg=null; /* quiz + theme decoded from a student link; overrides local data for that session */
+const QS=()=>cfg?cfg.q:db.questions,TH=()=>cfg?cfg.t:db.theme;
+async function makeLink(name,exp){
+  /* Uploaded (data:) images are too big for a URL, so only image URLs travel in the link. */
+  const q=db.questions.map(x=>({...x,img:x.img.startsWith('data:')?'':x.img}));
+  const pl=b64(JSON.stringify({e:exp,q:{q,t:db.theme}}));
+  return location.href.split(/[?#]/)[0]+'?student='+encodeURIComponent(name)+'&code='+pl+'.'+await sign(name+'|'+pl);
+}
+async function verify(who,code){
+  try{const [pl,sig]=code.split('.');if(!who||!pl||sig!==await sign(who+'|'+pl))return false;
+    const d=JSON.parse(unb64(pl));if(d.e&&Date.now()>d.e)return false;cfg=d.q;return true}catch(e){return false}
+}
+async function boot(){
+  const p=new URLSearchParams(location.search),who=p.get('student'),code=p.get('code');
+  if(!who&&!code)return show('home');
+  (await verify(who,code||''))?gate({name:who}):show('denied');
 }
 function gate(s){
   const n=db.attempts.filter(a=>a.student===s.name).length+1;
   $('gate').innerHTML=`<div class="card big">🧭<h1>Ready, ${esc(s.name)}?</h1><p>Attempt #${n}</p>
   <label style="font-size:1rem;text-align:left">Your name<input id="gname" value="${esc(s.name)}"></label>
   <label class="row" style="justify-content:center"><input type="checkbox" id="gsnd" checked style="width:24px;height:24px"> Sound on</label>
-  <p style="font-size:1rem">Collect ${esc(db.theme.item)}, dodge ${esc(db.theme.chaser)}, and answer the ❓ gates!</p>
+  <p style="font-size:1rem">Collect ${esc(TH().item)}, dodge ${esc(TH().chaser)}, and answer the ❓ gates!</p>
   <button class="btn pink" data-act="go" data-n="${esc(s.name)}">Let's go!</button></div>`;
   show('gate');
 }
@@ -129,7 +147,7 @@ const DIRS={u:{x:0,y:-1},d:{x:0,y:1},l:{x:-1,y:0},r:{x:1,y:0}},ZERO={x:0,y:0};
 let G=null,last=null;
 function startGame(name,preview){
   last={name,preview};closeModal();
-  const qs=shuffle(db.questions.slice()).slice(0,6),stars=new Set(),free=[],ch=[];
+  const qs=shuffle(QS().slice()).slice(0,6),stars=new Set(),free=[],ch=[];
   MAP.forEach((r,y)=>[...r].forEach((c,x)=>{if(c==='C')ch.push({x,y,sx:x,sy:y});if(c!=='#'){stars.add(x+','+y);if(Math.abs(x-1)+Math.abs(y-1)>5&&c!=='C')free.push(x+','+y)}}));
   stars.delete('1,1');
   const portals=new Map();shuffle(free).slice(0,qs.length).forEach((k,i)=>{portals.set(k,qs[i]);stars.delete(k)});
@@ -188,7 +206,7 @@ function cont(){
   if(G.lives<=0)end(false);else if(!G.portals.size)end(true);
 }
 function draw(){
-  const th=db.theme,now=Date.now();ctx.fillStyle=th.bg;ctx.fillRect(0,0,cv.width,cv.height);
+  const th=TH(),now=Date.now();ctx.fillStyle=th.bg;ctx.fillRect(0,0,cv.width,cv.height);
   ctx.fillStyle=th.wall;
   MAP.forEach((r,y)=>[...r].forEach((c,x)=>{if(c==='#'){ctx.beginPath();ctx.roundRect?ctx.roundRect(x*S+2,y*S+2,S-4,S-4,10):ctx.rect(x*S+2,y*S+2,S-4,S-4);ctx.fill()}}));
   ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='16px serif';
@@ -249,9 +267,9 @@ function rA(){
   return `<div class="card"><h2>Create student links</h2>
   <label>Student names or IDs (one per line)<textarea id="names" rows="4"></textarea></label>
   <label>Link lasts (hours, 0 = never expires)<input id="hrs" type="number" min="0" value="0"></label>
-  <button class="btn pink" data-act="gen">Create links</button></div>
+  <button class="btn pink" data-act="gen">Create links</button><button class="btn" data-act="regen">Refresh all links</button><p><small>Links carry a copy of your questions and theme. Finish editing first, then create or refresh links. Uploaded images stay on this device; use image URLs for links.</small></p></div>
   <div class="card wrap"><table><tr><th>Student</th><th>Unique link</th><th>Expires</th><th></th></tr>
-  ${db.students.map((s,i)=>`<tr><td>${esc(s.name)}</td><td><input readonly value="${esc(linkFor(s))}" onclick="this.select()"></td><td>${s.expires?new Date(s.expires).toLocaleString():'Never'}</td>
+  ${db.students.map((s,i)=>`<tr><td>${esc(s.name)}</td><td><input readonly value="${esc(s.link||'')}" onclick="this.select()"></td><td>${s.exp?new Date(s.exp).toLocaleString():'Never'}</td>
   <td><button class="btn sm" data-act="copy" data-i="${i}">Copy</button><button class="btn sm pink" data-act="delS" data-i="${i}">Remove</button></td></tr>`).join('')||'<tr><td colspan="4">No students yet.</td></tr>'}</table></div>
   <div class="card"><label>Change teacher PIN<input id="npin" value="${esc(db.pin)}" inputmode="numeric"></label><button class="btn" data-act="setpin">Save PIN</button></div>`;
 }
@@ -302,9 +320,11 @@ const ACT={
     editQ>=0?db.questions[editQ]=q:db.questions.push(q);editQ=-1;save();renderT()},
   editQ(d){editQ=+d.i;renderT();scrollTo(0,0)},cancelQ(){editQ=-1;renderT()},
   delQ(d){if(confirm('Delete this question?')){db.questions.splice(+d.i,1);save();renderT()}},
-  gen(){const names=$('names').value.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean),h=+$('hrs').value||0;
-    names.forEach(n=>{if(!db.students.some(s=>s.name===n))db.students.push({name:n,token:rnd(),expires:h?Date.now()+h*36e5:0})});save();renderT()},
-  copy(d){const l=linkFor(db.students[+d.i]);navigator.clipboard?.writeText(l).then(()=>toast('Link copied'),()=>toast('Select the link and copy it'))},
+  async gen(){const names=$('names').value.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean),h=+$('hrs').value||0;
+    for(const n of names)if(!db.students.some(s=>s.name===n)){const exp=h?Date.now()+h*36e5:0;db.students.push({name:n,exp,link:await makeLink(n,exp)})}
+    save();renderT()},
+  async regen(){for(const s of db.students)s.link=await makeLink(s.name,s.exp||0);save();renderT();toast('Links refreshed')},
+  copy(d){const l=db.students[+d.i].link||'';navigator.clipboard?.writeText(l).then(()=>toast('Link copied'),()=>toast('Select the link and copy it'))},
   delS(d){db.students.splice(+d.i,1);save();renderT()},
   setpin(){const v=$('npin').value.trim();if(v.length<3)return toast('Use at least 3 digits');db.pin=v;save();toast('PIN saved')},
   preset(d){db.theme={...THEMES[d.k]};save();renderT()},

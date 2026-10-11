@@ -1,346 +1,218 @@
-<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>MazeQuest: Classroom Chase</title>
-<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&display=swap" rel="stylesheet">
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta http-equiv="Cache-Control" content="no-store"><title>MazeQuest: Classroom Chase</title>
 <style>
-:root{--bg:#d6efff;--ink:#2a1f5c;--card:#fff;--pink:#ff5fa2;--sun:#ffd23f;--mint:#4fdca0;--line:#c9bdf3;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#171335;--ink:#f4efff;--card:#2a2463;--line:#4b4290}}
-:root[data-theme="dark"]{--bg:#171335;--ink:#f4efff;--card:#2a2463;--line:#4b4290}
-html{scroll-padding-top:env(safe-area-inset-top,0px)}
-*,*:before,*:after{box-sizing:inherit}
-[hidden]{display:none!important}
-body{margin:0;background:var(--bg);color:var(--ink);font:600 17px/1.4 Fredoka,"Trebuchet MS",system-ui,sans-serif}
-main{max-width:900px;margin:0 auto;padding:14px}
-h1,h2{margin:.2em 0;font-weight:700}h1{font-size:clamp(2rem,7vw,3.2rem)}
-.card{background:var(--card);border:3px solid var(--ink);border-radius:24px;padding:16px;margin:12px 0;box-shadow:0 6px 0 var(--ink)}
-.btn{font:inherit;font-weight:700;background:var(--sun);color:#2a1f5c;border:3px solid var(--ink);border-radius:999px;padding:10px 20px;margin:4px;cursor:pointer;box-shadow:0 4px 0 var(--ink)}
-.btn:active{transform:translateY(3px);box-shadow:0 1px 0 var(--ink)}
-.btn.pink{background:var(--pink)}.btn.mint{background:var(--mint)}.btn.sm{padding:4px 12px;font-size:.85rem}
-:focus-visible{outline:4px solid var(--pink);outline-offset:2px}
-label{display:block;margin:8px 0}label.row{display:flex;gap:8px;align-items:center}
-input:not([type=radio]):not([type=color]),textarea,select{width:100%;font:inherit;padding:8px 12px;border:3px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink)}
-input[type=radio]{width:24px;height:24px;accent-color:var(--pink)}
-input[type=color]{width:60px;height:40px;border:0;background:none}
-.tabs{display:flex;flex-wrap:wrap}.tabs .btn.on{background:var(--pink)}
-.wrap{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:560px}
-th,td{border-bottom:2px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top;font-size:.9rem}
-small,.muted{opacity:.75;font-weight:400}
-.ov{position:fixed;inset:0;background:#0008;display:flex;align-items:center;justify-content:center;padding:14px;z-index:9;overflow:auto}
-.ov .card{max-width:560px;width:100%}
-.ans{display:block;width:100%;text-align:left;margin:8px 0;background:var(--card);color:var(--ink)}
-.ans:hover{background:var(--sun);color:#2a1f5c}
-.qimg{max-width:100%;max-height:180px;border-radius:14px;display:block;margin:6px auto}
-#cv{width:100%;max-width:640px;display:block;margin:0 auto;border:4px solid var(--ink);border-radius:20px;touch-action:none}
-#hud{display:flex;justify-content:space-between;max-width:640px;margin:8px auto;font-size:1.2rem}
-.dpad{display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,64px);gap:6px;justify-content:center;margin:12px auto}
-.dpad button{font-size:1.6rem;padding:0;margin:0}
-.dpad [data-d="u"]{grid-column:2}.dpad [data-d="l"]{grid-row:2;grid-column:1}.dpad [data-d="d"]{grid-row:2;grid-column:2}.dpad [data-d="r"]{grid-row:2;grid-column:3}
-@media (hover:hover) and (pointer:fine){.dpad{display:none}}
-.bad{color:#d1306b}.good{color:#12945f}
-.big{font-size:2.4rem;text-align:center}
-#conf span{position:fixed;top:-30px;font-size:26px;z-index:20;animation:fall 3.5s linear forwards}
-@keyframes fall{to{transform:translateY(110vh) rotate(540deg)}}
-#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:8px 18px;border-radius:99px;z-index:30}
-@media (prefers-reduced-motion:reduce){#conf span{animation:none;display:none}}
+:root{box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--bg:#fff7e6;--card:#fff;--ink:#2d2a4a;--pri:#7c5cff;--ok:#2ecc71;--bad:#ff6b6b;--line:#e6dcc8}
+@media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#1d1b33;--card:#2a2750;--ink:#f4f1ff;--line:#46417a}}
+:root[data-theme="dark"]{--bg:#1d1b33;--card:#2a2750;--ink:#f4f1ff;--line:#46417a}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"Trebuchet MS","Comic Sans MS",system-ui,sans-serif;min-height:100vh}
+.view{max-width:900px;margin:0 auto;padding:16px}h1,h2,h3{margin:.3em 0}
+.card{background:var(--card);border:3px solid var(--line);border-radius:22px;padding:16px;margin:12px 0}
+button,.btn{font:inherit;font-weight:700;background:var(--pri);color:#fff;border:0;border-radius:999px;padding:10px 20px;cursor:pointer;margin:3px;box-shadow:0 4px 0 rgba(0,0,0,.2)}
+button:active{transform:translateY(3px);box-shadow:none}button.alt{background:#ffb703;color:#2d2a4a}button.bad{background:var(--bad)}button.ok{background:var(--ok)}
+input,textarea,select{font:inherit;width:100%;padding:9px 12px;border-radius:14px;border:2px solid var(--line);background:var(--card);color:var(--ink);margin:3px 0}
+input[type=color]{width:60px;height:40px;padding:2px}input[type=radio]{width:auto}
+.tabs{display:flex;flex-wrap:wrap}.tabs button{background:var(--line);color:var(--ink)}.tabs button.on{background:var(--pri);color:#fff}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}.row>*{flex:1 1 140px}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;font-size:.9rem}td,th{border-bottom:2px solid var(--line);padding:6px;text-align:left;vertical-align:top}
+.center{text-align:center}.big{font-size:2.4rem}.small{font-size:.8rem;opacity:.75}code{word-break:break-all;font-size:.75rem}
+#hud{display:flex;justify-content:space-between;font-weight:700;font-size:1.1rem;max-width:480px;margin:0 auto 6px}
+#cv{display:block;width:100%;max-width:480px;margin:0 auto;border-radius:18px;border:4px solid var(--line);touch-action:none}
+#dpad{display:grid;grid-template-columns:repeat(3,64px);grid-template-rows:repeat(2,64px);gap:6px;justify-content:center;margin:12px auto}
+#dpad button{font-size:1.5rem;padding:0;border-radius:18px;touch-action:none}
+.ov{position:fixed;inset:0;background:rgba(20,10,50,.7);display:flex;align-items:center;justify-content:center;padding:16px;z-index:9;overflow:auto}
+.ov .card{max-width:520px;width:100%;margin:0}.ch{display:block;width:100%;text-align:left;background:var(--card);color:var(--ink);border:3px solid var(--line);margin:6px 0}
+.ch.right{background:var(--ok);color:#fff}.ch.wrong{background:var(--bad);color:#fff}.qi{max-width:100%;max-height:200px;border-radius:14px;display:block;margin:8px auto}
+#conf{position:fixed;inset:0;pointer-events:none;z-index:20}
+.pp{flex:1 1 200px;border:3px solid var(--line);border-radius:14px;padding:8px;text-align:left;margin:4px 0}
+mark.g{background:#b8f5c9;color:#14532d;border-radius:4px;padding:0 3px}.miss{color:var(--bad);font-weight:700}
+.wob{animation:wob .5s}@keyframes wob{20%{transform:translateX(-10px)}40%{transform:translateX(10px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
+.tag{background:var(--line);border-radius:999px;padding:2px 10px;font-size:.75rem;margin-right:6px}
 </style></head><body>
-<main>
-<section id="home" hidden>
-  <div class="card big"><h1>🧭 MazeQuest</h1><div>Classroom Chase</div></div>
-  <div class="card"><p>Students: open the personal link your teacher gave you.</p>
-  <button class="btn pink" data-act="pin">Teacher login</button></div>
-</section>
-<section id="denied" hidden><div class="card big">🚫<h2>Access Denied</h2><p>Please ask your teacher for your unique access link.</p></div></section>
-<section id="gate" hidden></section>
-<section id="teacher" hidden></section>
-<section id="game" hidden>
-  <div id="hud"></div><canvas id="cv" width="600" height="440" aria-label="Maze"></canvas>
-  <div class="dpad"><button class="btn" data-d="u">⬆️</button><button class="btn" data-d="l">⬅️</button><button class="btn" data-d="d">⬇️</button><button class="btn" data-d="r">➡️</button></div>
-  <div style="text-align:center"><button class="btn sm" data-act="mute">🔊 Sound</button><button class="btn sm" data-act="quit">Quit</button></div>
-</section>
-<section id="result" hidden></section>
-</main>
-<div id="modal" class="ov" hidden><div class="card" id="mbox"></div></div><div id="conf"></div><div id="toast" hidden></div>
-
+<!-- HOME -->
+<section class="view center" id="home"><div class="big">🧩🏃‍♀️👾</div><h1>MazeQuest: Classroom Chase</h1>
+<p>Students: open the personal link your teacher gave you.</p><button class="alt" id="tbtn">🍎 Teacher Portal</button></section>
+<!-- DENIED -->
+<section class="view center" id="denied" hidden><div class="big">🔒</div><h1>Access Denied</h1><p>Please ask your teacher for your unique access link.</p></section>
+<!-- GATE -->
+<section class="view center" id="gate" hidden><div class="card"><h1>Ready to play? 🎮</h1><p>Confirm your name:</p><input id="gname" maxlength="30"><label><input type="checkbox" id="gsnd" checked style="width:auto"> 🔊 Sound & music</label><br><button class="ok" id="gstart">Start Quest!</button></div></section>
+<!-- GAME -->
+<section class="view center" id="game" hidden><div id="hud"><span id="hs"></span><span id="hl"></span><span id="hg"></span><button id="mute" style="padding:2px 12px">🔊</button></div><canvas id="cv" width="480" height="416"></canvas>
+<div id="dpad"><span></span><button data-d="0,-1">▲</button><span></span><button data-d="-1,0">◀</button><button data-d="0,1">▼</button><button data-d="1,0">▶</button></div>
+<p class="small">Arrow keys / WASD, swipe, or the pad. Grab gems, dodge chasers, enter ❓ portals!</p></section>
+<!-- END -->
+<section class="view center" id="end" hidden><div class="card"><h1 id="etitle"></h1><div class="big" id="estars"></div><h2 id="escore"></h2><div id="erev" style="text-align:left"></div><button class="ok" id="again">Play Again 🔁</button></div></section>
+<!-- TEACHER -->
+<section class="view" id="teacher" hidden><h1>🍎 Teacher Dashboard</h1>
+<div class="tabs" id="tabs"></div><div id="tbody"></div></section>
+<div id="modal"></div><canvas id="conf"></canvas>
 <script>
-"use strict";
-/* ===================== 1. STORE (swap this module for a real backend) =====================
-   Everything the app persists lives in one object `db`:
-   questions, students (access whitelist), attempts (analytics log), theme, pin.
-   NOTE: localStorage is per-browser, so teacher + students must share a browser/device
-   (e.g. classroom Chromebooks) until load()/save() are pointed at a server or cloud DB. */
-const KEY='mazequest-v1', $=id=>document.getElementById(id);
-const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const THEMES={
- space:{wall:'#5b4bff',bg:'#14123a',player:'🚀',item:'⭐',chaser:'👾'},
- jungle:{wall:'#2f9e5b',bg:'#e3f8cf',player:'🐒',item:'🍌',chaser:'🐊'},
- ocean:{wall:'#1c8fd6',bg:'#d2f3ff',player:'🐠',item:'🐚',chaser:'🦀'},
- candy:{wall:'#ff5fa2',bg:'#fff0f7',player:'🧁',item:'🍬',chaser:'🐻'}};
-const defaults=()=>({pin:'1234',students:[],attempts:[],theme:{...THEMES.space},questions:[
- {id:1,q:'What is 7 × 8?',c:['54','56','64','49'],a:1,e:'7 × 8 = 56. Try 7 × 4 = 28, then double it!',img:''},
- {id:2,q:'Which planet is called the Red Planet?',c:['Venus','Jupiter','Mars','Mercury'],a:2,e:'Mars looks red because of iron-rich dust.',img:''},
- {id:3,q:'What do plants need to make their food?',c:['Sunlight, water and air','Only soil','Moonlight','Sugar'],a:0,e:'Photosynthesis uses sunlight, water and carbon dioxide.',img:''}]});
-function load(){try{return Object.assign(defaults(),JSON.parse(localStorage.getItem(KEY)||'{}'))}catch(e){return defaults()}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(db))}catch(e){toast('Storage full. Use smaller images.')}}
-let db=load();
-function toast(m){const t=$('toast');t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2500)}
-function show(id){['home','denied','gate','teacher','game','result'].forEach(i=>$(i).hidden=i!==id)}
-function openModal(h){$('mbox').innerHTML=h;$('modal').hidden=false}
-function closeModal(){$('modal').hidden=true}
-const fmt=s=>Math.floor(s/60)+':'+String(s%60).padStart(2,'0');
-const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[a[i],a[j]]=[a[j],a[i]]}return a};
-
-/* ===================== 2. AUDIO (Web Audio, no files) ===================== */
-let AC,muted=false,mus;
-function tone(f,d,type='triangle',t0=0,v=.13){if(muted)return;try{AC=AC||new AudioContext();const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime+t0;
- o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(AC.destination);o.start(t);o.stop(t+d)}catch(e){}}
-const seq=(n,d=.15,type)=>n.forEach((f,i)=>tone(f,d+.1,type,i*d));
-const sfx={star:()=>tone(900,.08),right:()=>seq([523,659,784,1047]),wrong:()=>tone(160,.35,'sawtooth',0,.07),hit:()=>seq([300,200,130],.1,'square'),win:()=>seq([523,659,784,1047,784,1047,1319],.14)};
-function music(on){clearInterval(mus);if(!on)return;const n=[523,587,659,784,880,784,659,587];let i=0;mus=setInterval(()=>tone(n[i++%8],.2,'sine',0,.04),260)}
-
-/* ===================== 3. SELF-CONTAINED SIGNED LINKS =====================
-   A link looks like  ?student=Sarah&code=<payload>.<signature>
-   payload   = base64url JSON {e: expiry ms (0 = never), q: {q: questions, t: theme}}
-   signature = HMAC-SHA256(SECRET, name + "|" + payload), shortened.
-   On ANY device the page re-computes the signature from the name in the URL; if it matches
-   (and the link hasn't expired) the student is let in and the quiz is read from the link
-   itself. Nothing is looked up in localStorage, so links work on phones and tablets.
-   LIMITS: SECRET is visible in this file, so this stops edited names/expiry, not a
-   determined student. Change SECRET before class. Real security needs a server. */
-const SECRET='change-me-before-class';
-const b64=s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-const unb64=s=>decodeURIComponent(escape(atob(s.replace(/-/g,'+').replace(/_/g,'/'))));
-async function sign(msg){const k=await crypto.subtle.importKey('raw',new TextEncoder().encode(SECRET),{name:'HMAC',hash:'SHA-256'},false,['sign']);
-  const h=new Uint8Array(await crypto.subtle.sign('HMAC',k,new TextEncoder().encode(msg)));return Array.from(h.slice(0,12),x=>x.toString(16).padStart(2,'0')).join('')}
-let cfg=null; /* quiz + theme decoded from a student link; overrides local data for that session */
-const QS=()=>cfg?cfg.q:db.questions,TH=()=>cfg?cfg.t:db.theme;
-async function makeLink(name,exp){
-  /* Uploaded (data:) images are too big for a URL, so only image URLs travel in the link. */
-  const q=db.questions.map(x=>({...x,img:x.img.startsWith('data:')?'':x.img}));
-  const pl=b64(JSON.stringify({e:exp,q:{q,t:db.theme}}));
-  return location.href.split(/[?#]/)[0]+'?student='+encodeURIComponent(name)+'&code='+pl+'.'+await sign(name+'|'+pl);
+/* ===== STORAGE (mock cloud DB) =====
+   Everything persists through Store. It uses browser localStorage (private to this browser).
+   To go multi-device, swap get/set for fetch() calls to Firebase/Supabase; nothing else changes. */
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const mem={};const Store={get(k,d){try{const v=localStorage.getItem('mq_'+k);if(v)return JSON.parse(v)}catch(e){}return mem[k]??d},set(k,v){mem[k]=v;try{localStorage.setItem('mq_'+k,JSON.stringify(v))}catch(e){}}};
+/* ===== THEMES ===== */
+const THEMES={space:{n:'🚀 Space Odyssey',wall:'#6c5ce7',bg:'#1e1b4b',p:'🚀',g:'⭐',c:'👾'},jungle:{n:'🌴 Enchanted Jungle',wall:'#2d9d5b',bg:'#e8f8e0',p:'🐒',g:'🍌',c:'🐍'},sea:{n:'🐠 Undersea Adventure',wall:'#0984e3',bg:'#d6f1ff',p:'🐠',g:'🐚',c:'🦈'},candy:{n:'🍭 Candy Land',wall:'#e84393',bg:'#fff0f6',p:'🧁',g:'🍬',c:'🍭'}};
+const DEF={pin:'1234',theme:{...THEMES.space},roster:[],qs:[
+{id:1,q:'What is 7 × 8?',c:['54','56','64','48'],a:1,e:'7 × 8 = 56. Try 7×7=49 then add 7!',img:''},
+{id:2,q:'Which planet is known as the Red Planet?',c:['Venus','Jupiter','Mars','Mercury'],a:2,e:'Mars looks red because of iron-rich dust.',img:''},
+{id:3,q:'Which word is a noun?',c:['Run','Happy','Dog','Quickly'],a:2,e:'A noun names a person, place or thing. Dog is a thing!',img:''},
+{id:4,type:'complete',q:'Ice floats because its ____ is lower than water.',kw:'density',model:'density',e:'Less dense things float.',img:''},
+{id:5,type:'give_reason',q:'Give reason: ice floats on water.',kw:'density, less|lower|smaller',model:'Ice has a lower density than liquid water.',e:'Think about how tightly the particles are packed.',img:''},
+{id:6,type:'what_happens',q:'What happens if you heat water to 100°C?',kw:'boil|evaporate|steam|vapor|gas',model:'It boils and turns into steam (water vapor).',e:'Water changes state at its boiling point.',img:''},
+{id:7,type:'correct',q:'Ice *sinks* in water.',kw:'float',model:'Ice floats in water.',e:'Ice is less dense than water.',img:''}]};
+let cfg=Store.get('cfg',DEF),logs=Store.get('logs',[]);cfg.qs.forEach(q=>q.type??='mcq');const saveCfg=()=>Store.set('cfg',cfg);
+const show=id=>document.querySelectorAll('.view').forEach(v=>v.hidden=v.id!==id);
+const params=new URLSearchParams(location.search);let student=null,preview=false;
+/* ===== TEACHER LINK VALIDATION =====
+   Each roster entry = {name, token (random 8-byte hex), exp (timestamp or 0)}.
+   A link is valid only if token AND student name both match the same roster entry and it hasn't expired.
+   Anything else shows the Access Denied screen. (Client-side check: for strong security, validate on a server.) */
+function validate(){const t=params.get('token'),s=(params.get('student')||'').trim().toLowerCase();
+return cfg.roster.find(r=>r.token===t&&r.name.toLowerCase()===s&&(!r.exp||Date.now()<r.exp))}
+const mkToken=()=>[...crypto.getRandomValues(new Uint8Array(8))].map(b=>b.toString(16).padStart(2,'0')).join('');
+/* ===== AUDIO (Web Audio) ===== */
+let AC,sound=true,mus;
+function tone(f,d=.15,type='sine',at=0,v=.12){if(!sound||!AC)return;const o=AC.createOscillator(),g=AC.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(v,AC.currentTime+at);g.gain.exponentialRampToValueAtTime(.001,AC.currentTime+at+d);o.connect(g);g.connect(AC.destination);o.start(AC.currentTime+at);o.stop(AC.currentTime+at+d)}
+const sfx={gem:()=>tone(880,.08,'triangle'),good:()=>[523,659,784,1047].forEach((f,i)=>tone(f,.18,'triangle',i*.09)),bad:()=>{tone(150,.3,'sawtooth',0,.08)},win:()=>[523,659,784,659,784,1047,1319].forEach((f,i)=>tone(f,.25,'square',i*.12,.07))};
+function music(on){clearInterval(mus);if(!on||!sound||!AC)return;const n=[392,494,587,494,440,523,659,523];let i=0;mus=setInterval(()=>tone(n[i++%8],.2,'triangle',0,.04),260)}
+function setSound(v){sound=v;$('#mute').textContent=v?'🔊':'🔇';music(v&&G&&!G.over)}
+$('#mute').onclick=()=>setSound(!sound);
+/* ===== TEACHER PORTAL ===== */
+$('#tbtn').onclick=()=>{show('teacher');tab('q')};
+const TABS={q:'❓ Questions',a:'🔗 Access Links',t:'🎨 Theme',s:'📊 Analytics'};
+function tab(t){$('#tabs').innerHTML=Object.entries(TABS).map(([k,v])=>`<button class="${k===t?'on':''}" data-t="${k}">${v}</button>`).join('')+'<button class="alt" id="prev">▶ Preview game</button><button class="bad" id="exit">Exit</button>';
+$('#tabs').querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>tab(b.dataset.t));$('#exit').onclick=()=>show('home');$('#prev').onclick=()=>{preview=true;startGame('Preview')};
+({q:tQ,a:tA,t:tT,s:tS})[t]()}
+let editing=null;
+const TYPES={mcq:'Multiple Choice',complete:'Complete',give_reason:'Give reason for',what_happens:'What happens if',correct:'Correct the mistake'};
+const HINT={mcq:'Question prompt',complete:'Sentence with a blank, e.g. Ice floats because its ____ is lower than water.',give_reason:'e.g. Give reason: ice floats on water.',what_happens:'e.g. What happens if you heat water to 100°C?',correct:'Statement with the wrong word in *stars*, e.g. Ice *sinks* in water.'};
+function tQ(){const q={type:'mcq',q:'',c:['','','',''],a:0,e:'',img:'',kw:'',model:'',...(editing!=null?cfg.qs.find(x=>x.id===editing):{})};
+$('#tbody').innerHTML=`<div class="card"><h3>${editing!=null?'Edit':'Add'} question</h3>
+<select id="qt">${Object.entries(TYPES).map(([k,v])=>`<option value="${k}" ${q.type===k?'selected':''}>${v}</option>`).join('')}</select>
+<textarea id="qq" rows="2">${esc(q.q)}</textarea>
+<div id="mc">${q.c.map((c,i)=>`<div class="row"><input class="qc" value="${esc(c)}" placeholder="Choice ${i+1}"><label style="flex:0 0 90px"><input type="radio" name="ca" value="${i}" ${q.a===i?'checked':''}> correct</label></div>`).join('')}</div>
+<div id="wr"><input id="qk" placeholder="Required keywords, comma-separated; synonyms with | (e.g. density, less|lower)" value="${esc(q.kw)}"><textarea id="qm" rows="2" placeholder="Model answer">${esc(q.model)}</textarea></div>
+<textarea id="qe" rows="2" placeholder="Kid-friendly explanation (shown when wrong)">${esc(q.e)}</textarea>
+<input id="qimg" placeholder="Image URL (optional)" value="${esc(q.img.startsWith('data:')?'':q.img)}"><input type="file" id="qf" accept="image/*"><img id="qp" class="qi" ${q.img?`src="${esc(q.img)}"`:'hidden'}>
+<button class="ok" id="qs">Save</button>${editing!=null?'<button class="alt" id="qc">Cancel</button>':''}</div>
+<div class="card"><h3>${cfg.qs.length} questions</h3>${cfg.qs.map(x=>`<div class="row"><span><span class="tag">${TYPES[x.type]}</span>${esc(x.q)} ${x.img?'🖼️':''}</span><span style="flex:0 0 150px"><button data-e="${x.id}">Edit</button><button class="bad" data-x="${x.id}">🗑</button></span></div>`).join('')}</div>`;
+const sy=()=>{const m=$('#qt').value==='mcq';$('#mc').hidden=!m;$('#wr').hidden=m;$('#qq').placeholder=HINT[$('#qt').value]};$('#qt').onchange=sy;sy();
+let img=q.img;$('#qf').onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{img=r.result;$('#qp').src=img;$('#qp').hidden=false};r.readAsDataURL(f)};
+$('#qimg').oninput=e=>{if(e.target.value){img=e.target.value;$('#qp').src=img;$('#qp').hidden=false}};
+$('#qs').onclick=()=>{const ty=$('#qt').value,o={id:editing??Date.now(),type:ty,q:$('#qq').value.trim(),e:$('#qe').value.trim(),img,c:['','','',''],a:0,kw:'',model:''};
+if(!o.q)return alert('Please write the question.');
+if(ty==='mcq'){o.c=[...document.querySelectorAll('.qc')].map(i=>i.value.trim());o.a=+(document.querySelector('[name=ca]:checked')||{value:0}).value;if(o.c.some(x=>!x))return alert('Please fill all 4 choices.')}
+else{o.kw=$('#qk').value.trim();o.model=$('#qm').value.trim();if(!o.kw||!o.model)return alert('Add required keywords and a model answer.')}
+if(editing!=null)cfg.qs[cfg.qs.findIndex(x=>x.id===editing)]=o;else cfg.qs.push(o);editing=null;saveCfg();tQ()};
+if($('#qc'))$('#qc').onclick=()=>{editing=null;tQ()};
+$('#tbody').querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>{editing=+b.dataset.e;tQ();scrollTo(0,0)});
+$('#tbody').querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{if(confirm('Delete this question?')){cfg.qs=cfg.qs.filter(x=>x.id!==+b.dataset.x);saveCfg();tQ()}})}
+const link=r=>location.origin+location.pathname+'?token='+r.token+'&student='+encodeURIComponent(r.name);
+function tA(){$('#tbody').innerHTML=`<div class="card"><h3>Authorized students</h3><textarea id="names" rows="4" placeholder="One name or ID per line"></textarea>
+<div class="row"><input id="exp" type="number" min="0" value="0" placeholder="Hours until expiry (0 = never)"><button id="gen">Generate links</button></div><p class="small">Each link only works for its own student name + token. Re-generating a name issues a new token and kills the old link.</p></div>
+<div class="card tw"><table><tr><th>Student</th><th>Link</th><th></th></tr>${cfg.roster.map((r,i)=>`<tr><td>${esc(r.name)}${r.exp?`<br><span class="small">expires ${new Date(r.exp).toLocaleString()}</span>`:''}</td><td><code>${esc(link(r))}</code></td><td><button data-c="${i}">Copy</button><button class="bad" data-d="${i}">🗑</button></td></tr>`).join('')}</table></div>`;
+$('#gen').onclick=()=>{const h=+$('#exp').value||0;$('#names').value.split('\n').map(s=>s.trim()).filter(Boolean).forEach(n=>{cfg.roster=cfg.roster.filter(r=>r.name.toLowerCase()!==n.toLowerCase());cfg.roster.push({name:n,token:mkToken(),exp:h?Date.now()+h*36e5:0})});saveCfg();tA()};
+$('#tbody').querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{const t=link(cfg.roster[b.dataset.c]);navigator.clipboard?.writeText(t).then(()=>b.textContent='Copied!',()=>prompt('Copy:',t))});
+$('#tbody').querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{cfg.roster.splice(b.dataset.d,1);saveCfg();tA()});
 }
-async function verify(who,code){
-  try{const [pl,sig]=code.split('.');if(!who||!pl||sig!==await sign(who+'|'+pl))return false;
-    const d=JSON.parse(unb64(pl));if(d.e&&Date.now()>d.e)return false;cfg=d.q;return true}catch(e){return false}
-}
-async function boot(){
-  const p=new URLSearchParams(location.search),who=p.get('student'),code=p.get('code');
-  if(!who&&!code)return show('home');
-  (await verify(who,code||''))?gate({name:who}):show('denied');
-}
-function gate(s){
-  const n=db.attempts.filter(a=>a.student===s.name).length+1;
-  $('gate').innerHTML=`<div class="card big">🧭<h1>Ready, ${esc(s.name)}?</h1><p>Attempt #${n}</p>
-  <label style="font-size:1rem;text-align:left">Your name<input id="gname" value="${esc(s.name)}"></label>
-  <label class="row" style="justify-content:center"><input type="checkbox" id="gsnd" checked style="width:24px;height:24px"> Sound on</label>
-  <p style="font-size:1rem">Collect ${esc(TH().item)}, dodge ${esc(TH().chaser)}, and answer the ❓ gates!</p>
-  <button class="btn pink" data-act="go" data-n="${esc(s.name)}">Let's go!</button></div>`;
-  show('gate');
-}
-
-/* ===================== 4. GAME ENGINE ===================== */
-const MAP=["###############","#P.....#......#","#.###.#.#.###.#","#.#.........#.#","#...##.#.##...#","###.#..C..#.###","#...##.#.##...#","#.#.........#.#","#.###.#.#.###.#","#.....#C......#","###############"];
-const W=15,H=11,S=40,cv=$('cv'),ctx=cv.getContext('2d');
-const open=(x,y)=>MAP[y]&&MAP[y][x]!==undefined&&MAP[y][x]!=='#';
-const DIRS={u:{x:0,y:-1},d:{x:0,y:1},l:{x:-1,y:0},r:{x:1,y:0}},ZERO={x:0,y:0};
-let G=null,last=null;
-function startGame(name,preview){
-  last={name,preview};closeModal();
-  const qs=shuffle(QS().slice()).slice(0,6),stars=new Set(),free=[],ch=[];
-  MAP.forEach((r,y)=>[...r].forEach((c,x)=>{if(c==='C')ch.push({x,y,sx:x,sy:y});if(c!=='#'){stars.add(x+','+y);if(Math.abs(x-1)+Math.abs(y-1)>5&&c!=='C')free.push(x+','+y)}}));
-  stars.delete('1,1');
-  const portals=new Map();shuffle(free).slice(0,qs.length).forEach((k,i)=>{portals.set(k,qs[i]);stars.delete(k)});
-  G={name,preview,stars,portals,ch,p:{x:1,y:1},dir:ZERO,want:ZERO,lives:3,score:0,got:0,answers:[],total:qs.length,
-     t0:Date.now(),lp:0,lc:0,boost:0,freeze:0,inv:0,paused:false,over:false};
-  show('game');hud();music(!muted);requestAnimationFrame(loop);
-}
-function hud(){$('hud').innerHTML=`<span>${'❤️'.repeat(Math.max(G.lives,0))}</span><span>⭐ ${G.score}</span><span>❓ ${G.portals.size} left</span>`}
-function loop(){if(!G||G.over)return;requestAnimationFrame(loop);if(!G.paused)step();draw()}
-function step(){
-  const now=Date.now(),p=G.p;
-  if(now-G.lp>(G.boost>now?105:165)){G.lp=now;
-    for(const d of [G.want,G.dir])if((d.x||d.y)&&open(p.x+d.x,p.y+d.y)){G.dir=d;p.x+=d.x;p.y+=d.y;collect();break}}
-  if(G.over||G.paused)return;
-  if(now>G.freeze&&now-G.lc>380){G.lc=now;G.ch.forEach(moveChaser)}
-  if(now>G.inv&&now>G.freeze&&G.ch.some(c=>c.x===p.x&&c.y===p.y))hurt();
-}
-function moveChaser(c){
-  const p=G.p,opts=Object.values(DIRS).filter(d=>open(c.x+d.x,c.y+d.y)&&!(d.x===-c.lx&&d.y===-c.ly));
-  const list=opts.length?opts:Object.values(DIRS).filter(d=>open(c.x+d.x,c.y+d.y));
-  const dist=d=>Math.abs(c.x+d.x-p.x)+Math.abs(c.y+d.y-p.y);
-  const d=Math.random()<.7?list.reduce((a,b)=>dist(b)<dist(a)?b:a):list[Math.random()*list.length|0];
-  c.x+=d.x;c.y+=d.y;c.lx=d.x;c.ly=d.y;
-}
-function collect(){
-  const k=G.p.x+','+G.p.y;
-  if(G.stars.delete(k)){G.score+=10;G.got++;sfx.star();hud()}
-  if(G.portals.has(k)){G.paused=true;ask(G.portals.get(k),k)}
-}
-function hurt(){
-  G.lives--;sfx.hit();G.p={x:1,y:1};G.dir=G.want=ZERO;G.inv=Date.now()+2000;
-  G.ch.forEach(c=>{c.x=c.sx;c.y=c.sy});hud();if(G.lives<=0)end(false);
-}
-/* Question gate: modal shows the teacher's question (+image). Every answer is pushed to
-   G.answers {question, chosen, correct, ok}; that array is saved with the attempt and
-   powers the teacher's "missed questions / wrong answers" analytics. */
-function ask(q,k){
-  G.cur=q;G.curKey=k;
-  openModal(`<h2>${esc(q.q)}</h2>${q.img?`<img class="qimg" src="${esc(q.img)}" alt="">`:''}`+
-    q.c.map((c,i)=>`<button class="btn ans" data-act="ans" data-i="${i}">${'ABCD'[i]}. ${esc(c)}</button>`).join(''));
-}
-function answer(i){
-  const q=G.cur,ok=i===q.a;
-  G.answers.push({id:q.id,q:q.q,chosen:q.c[i],correct:q.c[q.a],ok,e:q.e});
-  G.portals.delete(G.curKey);G.bonus=ok;
-  if(ok){G.score+=50;sfx.right()}else{G.lives--;sfx.wrong()}
-  hud();
-  openModal(ok?`<div class="big good">🎉 Correct!</div><p class="good">Speed boost + chasers frozen!</p>`
-    :`<div class="big bad">Oops!</div><p>The answer was <b>${esc(q.c[q.a])}</b>.</p><p>💡 ${esc(q.e||'Keep trying!')}</p>`)
-  ;$('mbox').insertAdjacentHTML('beforeend','<button class="btn mint" data-act="cont">Keep going</button>');
-}
-function cont(){
-  closeModal();const now=Date.now();
-  if(G.bonus){G.boost=now+5000;G.freeze=now+4000}
-  G.paused=false;G.lp=G.lc=now;
-  if(G.lives<=0)end(false);else if(!G.portals.size)end(true);
-}
-function draw(){
-  const th=TH(),now=Date.now();ctx.fillStyle=th.bg;ctx.fillRect(0,0,cv.width,cv.height);
-  ctx.fillStyle=th.wall;
-  MAP.forEach((r,y)=>[...r].forEach((c,x)=>{if(c==='#'){ctx.beginPath();ctx.roundRect?ctx.roundRect(x*S+2,y*S+2,S-4,S-4,10):ctx.rect(x*S+2,y*S+2,S-4,S-4);ctx.fill()}}));
-  ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='16px serif';
-  const at=(k,e)=>{const [x,y]=k.split(',');ctx.fillText(e,x*S+S/2,y*S+S/2)};
-  G.stars.forEach(k=>at(k,th.item));
-  ctx.font='28px serif';const pulse=1+Math.sin(now/200)*.12;
-  G.portals.forEach((q,k)=>{const [x,y]=k.split(',');ctx.fillStyle='#ffd23f';ctx.beginPath();ctx.arc(x*S+S/2,y*S+S/2,S/2*pulse-2,0,7);ctx.fill();ctx.fillStyle='#2a1f5c';ctx.fillText('❓',x*S+S/2,y*S+S/2)});
-  ctx.globalAlpha=now<G.freeze?.45:1;G.ch.forEach(c=>ctx.fillText(th.chaser,c.x*S+S/2,c.y*S+S/2));ctx.globalAlpha=1;
-  if(now>G.inv||(now/120|0)%2){ctx.font=G.boost>now?'34px serif':'30px serif';ctx.fillText(th.player,G.p.x*S+S/2,G.p.y*S+S/2)}
-}
-function end(win){
-  if(G.over)return;G.over=true;music(false);
-  if(win)G.score+=G.lives*25;
-  const ok=G.answers.filter(a=>a.ok).length,ratio=G.total?ok/G.total:0,sg=win?(ratio>=.9?3:ratio>=.6?2:1):(ok?1:0);
-  const n=db.attempts.filter(a=>a.student===G.name).length+1;
-  /* Analytics: one record per run, appended to db.attempts. The teacher dashboard and CSV
-     export are computed purely from this array (attempt #, score, time, answers). */
-  const rec={student:G.name,attempt:n,date:new Date().toISOString(),score:G.score,stars:sg,time:Math.round((Date.now()-G.t0)/1000),win,answers:G.answers};
-  if(!G.preview){db.attempts.push(rec);save()}
-  (win?sfx.win:sfx.hit)();if(win)confetti();
-  $('result').innerHTML=`<div class="card big">${win?'🏆':'💪'}<h1>${win?'You did it!':'Good try!'}</h1>
-   <div>${'⭐'.repeat(sg)}${'☆'.repeat(3-sg)}</div><p>Score <b>${G.score}</b> · Time ${fmt(rec.time)} · Attempt #${n}${G.preview?' (preview, not saved)':''}</p>
-   <button class="btn pink" data-act="again">Play again</button>${G.preview?'<button class="btn" data-act="back">Back to dashboard</button>':''}</div>
-   <div class="card"><h2>Question review</h2>${G.answers.map(a=>`<p>${a.ok?'✅':'❌'} <b>${esc(a.q)}</b><br>${a.ok?`<span class="good">${esc(a.correct)}</span>`:`<span class="bad">You chose: ${esc(a.chosen)}</span><br>Correct: ${esc(a.correct)}<br><small>💡 ${esc(a.e||'')}</small>`}</p>`).join('')||'<p>No questions reached this time.</p>'}</div>`;
-  closeModal();show('result');
-}
-function confetti(){const c=$('conf');for(let i=0;i<45;i++){const s=document.createElement('span');s.textContent=['🎉','✨','⭐','🎈'][i%4];s.style.left=Math.random()*100+'vw';s.style.animationDelay=Math.random()*1.5+'s';c.appendChild(s)}setTimeout(()=>c.innerHTML='',5500)}
-
-/* Controls: keyboard, on-screen D-pad, swipe */
-const KEYS={ArrowUp:'u',w:'u',W:'u',ArrowDown:'d',s:'d',S:'d',ArrowLeft:'l',a:'l',A:'l',ArrowRight:'r',d:'r',D:'r'};
-addEventListener('keydown',e=>{if(G&&!G.over&&KEYS[e.key]){G.want=DIRS[KEYS[e.key]];e.preventDefault()}});
-document.querySelectorAll('.dpad [data-d]').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();if(G)G.want=DIRS[b.dataset.d]}));
-let t0=null;
-cv.addEventListener('touchstart',e=>{t0=e.touches[0]},{passive:true});
-cv.addEventListener('touchend',e=>{if(!t0||!G)return;const t=e.changedTouches[0],dx=t.clientX-t0.clientX,dy=t.clientY-t0.clientY;
-  if(Math.max(Math.abs(dx),Math.abs(dy))>20)G.want=DIRS[Math.abs(dx)>Math.abs(dy)?(dx>0?'r':'l'):(dy>0?'d':'u')]});
-
-/* ===================== 5. TEACHER PORTAL ===================== */
-let tab='q',editQ=-1,fileImg=null;
-const teacherHTML=()=>`<div class="card"><h1>👩‍🏫 Teacher Dashboard</h1>
- <nav class="tabs">${[['q','Questions'],['a','Student links'],['t','Theme'],['s','Results']].map(([k,l])=>`<button class="btn ${tab===k?'on':''}" data-act="tab" data-t="${k}">${l}</button>`).join('')}
- <button class="btn mint" data-act="preview">Preview game</button><button class="btn" data-act="logout">Log out</button></nav></div><div id="tbody"></div>`;
-function renderT(){$('teacher').innerHTML=teacherHTML();
-  $('tbody').innerHTML={q:rQ,a:rA,t:rT,s:rS}[tab]();show('teacher')}
-function rQ(){
-  const e=db.questions[editQ]||{q:'',c:['','','',''],a:0,e:'',img:''};fileImg=null;
-  return `<div class="card"><h2>${editQ>=0?'Edit':'New'} question</h2>
-  <label>Question<input id="qp" value="${esc(e.q)}"></label>
-  ${e.c.map((c,i)=>`<label class="row"><input type="radio" name="cr" value="${i}" ${e.a===i?'checked':''} aria-label="Correct answer ${i+1}"><input id="c${i}" placeholder="Choice ${i+1}" value="${esc(c)}"></label>`).join('')}
-  <small>Select the circle beside the correct choice.</small>
-  <label>Explanation (shown after a wrong answer)<input id="qe" value="${esc(e.e)}"></label>
-  <label>Image URL (optional)<input id="qi" value="${esc(e.img.startsWith('data:')?'':e.img)}"></label>
-  <label>Or upload an image<input type="file" id="qf" accept="image/*"></label><div id="pv">${e.img?`<img class="qimg" src="${esc(e.img)}" alt="">`:''}</div>
-  <button class="btn pink" data-act="saveQ">Save question</button>${editQ>=0?'<button class="btn" data-act="cancelQ">Cancel</button>':''}</div>
-  <div class="card"><h2>${db.questions.length} questions</h2>${db.questions.map((q,i)=>`<p>${esc(q.q)} ${q.img?'🖼️':''}<br><button class="btn sm" data-act="editQ" data-i="${i}">Edit</button><button class="btn sm pink" data-act="delQ" data-i="${i}">Delete</button></p>`).join('')}</div>`;
-}
-function rA(){
-  return `<div class="card"><h2>Create student links</h2>
-  <label>Student names or IDs (one per line)<textarea id="names" rows="4"></textarea></label>
-  <label>Link lasts (hours, 0 = never expires)<input id="hrs" type="number" min="0" value="0"></label>
-  <button class="btn pink" data-act="gen">Create links</button><button class="btn" data-act="regen">Refresh all links</button><p><small>Links carry a copy of your questions and theme. Finish editing first, then create or refresh links. Uploaded images stay on this device; use image URLs for links.</small></p></div>
-  <div class="card wrap"><table><tr><th>Student</th><th>Unique link</th><th>Expires</th><th></th></tr>
-  ${db.students.map((s,i)=>`<tr><td>${esc(s.name)}</td><td><input readonly value="${esc(s.link||'')}" onclick="this.select()"></td><td>${s.exp?new Date(s.exp).toLocaleString():'Never'}</td>
-  <td><button class="btn sm" data-act="copy" data-i="${i}">Copy</button><button class="btn sm pink" data-act="delS" data-i="${i}">Remove</button></td></tr>`).join('')||'<tr><td colspan="4">No students yet.</td></tr>'}</table></div>
-  <div class="card"><label>Change teacher PIN<input id="npin" value="${esc(db.pin)}" inputmode="numeric"></label><button class="btn" data-act="setpin">Save PIN</button></div>`;
-}
-function rT(){
-  const t=db.theme;
-  return `<div class="card"><h2>Lesson theme</h2>${Object.keys(THEMES).map(k=>`<button class="btn" data-act="preset" data-k="${k}">${THEMES[k].player} ${k}</button>`).join('')}
-  <label class="row">Wall colour <input type="color" id="tw" value="${t.wall}"></label>
-  <label class="row">Background <input type="color" id="tb" value="${t.bg}"></label>
-  <label>Player avatar (emoji)<input id="tp" value="${esc(t.player)}"></label>
-  <label>Collectible (emoji)<input id="ti" value="${esc(t.item)}"></label>
-  <label>Friendly chaser (emoji)<input id="tc" value="${esc(t.chaser)}"></label>
-  <button class="btn pink" data-act="preview">Try it</button></div>`;
-}
-function rS(){
-  const by={};db.attempts.forEach(a=>(by[a.student]=by[a.student]||[]).push(a));
-  const rows=Object.entries(by).map(([n,l])=>{const miss=l.flatMap(a=>a.answers.filter(x=>!x.ok));
-    return `<tr><td>${esc(n)}</td><td>${l.length}</td><td>${Math.max(...l.map(a=>a.score))}</td><td>${l.at(-1).score}</td><td>${l.map(a=>fmt(a.time)).join(', ')}</td>
-    <td>${miss.map(x=>`${esc(x.q)} <span class="bad">(chose ${esc(x.chosen)})</span>`).join('<br>')||'—'}</td></tr>`}).join('');
-  const qb={};db.attempts.forEach(a=>a.answers.forEach(x=>{const o=qb[x.q]=qb[x.q]||{n:0,m:0,w:{}};o.n++;if(!x.ok){o.m++;o.w[x.chosen]=(o.w[x.chosen]||0)+1}}));
-  const trouble=Object.entries(qb).filter(([,o])=>o.m).sort((a,b)=>b[1].m-a[1].m).map(([q,o])=>{const top=Object.entries(o.w).sort((a,b)=>b[1]-a[1])[0];
-    return `<p><b>${esc(q)}</b><br>Missed ${o.m} of ${o.n}. Most common wrong answer: <span class="bad">${esc(top[0])}</span> (${top[1]}×)</p>`}).join('');
-  return `<div class="card"><button class="btn mint" data-act="csv">Export results to CSV</button><button class="btn" data-act="clear">Clear results</button></div>
-  <div class="card wrap"><table><tr><th>Student</th><th>Attempts</th><th>Best</th><th>Latest</th><th>Time per run</th><th>Missed questions</th></tr>${rows||'<tr><td colspan="6">No attempts yet.</td></tr>'}</table></div>
-  <div class="card"><h2>Common pitfalls</h2>${trouble||'<p>Nothing missed yet.</p>'}</div>`;
-}
-function csv(){
-  const q=v=>'"'+String(v).replace(/"/g,'""')+'"';
-  return [['Student','Attempt','Date','Score','Stars','Seconds','Result','Missed (wrong answer chosen)'],
-   ...db.attempts.map(a=>[a.student,a.attempt,a.date,a.score,a.stars,a.time,a.win?'Won':'Lost',a.answers.filter(x=>!x.ok).map(x=>x.q+' -> '+x.chosen).join(' | ')])].map(r=>r.map(q).join(',')).join('\n');
-}
-document.addEventListener('change',e=>{
-  const id=e.target.id,t=db.theme,v=e.target.value;
-  if(id==='qf'&&e.target.files[0]){const r=new FileReader();r.onload=()=>{fileImg=r.result;$('pv').innerHTML=`<img class="qimg" src="${fileImg}" alt="">`};r.readAsDataURL(e.target.files[0])}
-  const map={tw:'wall',tb:'bg',tp:'player',ti:'item',tc:'chaser'};
-  if(map[id]){t[map[id]]=v;save();toast('Theme saved')}
-});
-
-/* ===================== 6. ACTIONS (one delegated click handler) ===================== */
-const ACT={
-  pin(){openModal(`<h2>Teacher PIN</h2><input id="pinin" type="password" inputmode="numeric" placeholder="PIN (default 1234)"><button class="btn pink" data-act="pinok">Enter</button><button class="btn" data-act="close">Cancel</button>`);setTimeout(()=>$('pinin')&&$('pinin').focus(),50)},
-  pinok(){if($('pinin').value===db.pin){closeModal();renderT()}else toast('Wrong PIN')},
-  close:closeModal,logout(){show('home')},
-  tab(d){tab=d.t;editQ=-1;renderT()},
-  saveQ(){const c=[0,1,2,3].map(i=>$('c'+i).value.trim()),p=$('qp').value.trim();
-    if(!p||c.some(x=>!x))return toast('Fill in the question and all 4 choices');
-    const old=db.questions[editQ],img=fileImg||$('qi').value.trim()||(old&&old.img.startsWith('data:')?old.img:'');
-    const q={id:old?old.id:Date.now(),q:p,c,a:+document.querySelector('[name=cr]:checked').value,e:$('qe').value.trim(),img};
-    editQ>=0?db.questions[editQ]=q:db.questions.push(q);editQ=-1;save();renderT()},
-  editQ(d){editQ=+d.i;renderT();scrollTo(0,0)},cancelQ(){editQ=-1;renderT()},
-  delQ(d){if(confirm('Delete this question?')){db.questions.splice(+d.i,1);save();renderT()}},
-  async gen(){const names=$('names').value.split(/[\n,]+/).map(s=>s.trim()).filter(Boolean),h=+$('hrs').value||0;
-    for(const n of names)if(!db.students.some(s=>s.name===n)){const exp=h?Date.now()+h*36e5:0;db.students.push({name:n,exp,link:await makeLink(n,exp)})}
-    save();renderT()},
-  async regen(){for(const s of db.students)s.link=await makeLink(s.name,s.exp||0);save();renderT();toast('Links refreshed')},
-  copy(d){const l=db.students[+d.i].link||'';navigator.clipboard?.writeText(l).then(()=>toast('Link copied'),()=>toast('Select the link and copy it'))},
-  delS(d){db.students.splice(+d.i,1);save();renderT()},
-  setpin(){const v=$('npin').value.trim();if(v.length<3)return toast('Use at least 3 digits');db.pin=v;save();toast('PIN saved')},
-  preset(d){db.theme={...THEMES[d.k]};save();renderT()},
-  preview(){startGame('Preview',true)},back(){renderT()},
-  csv(){openModal(`<h2>Results CSV</h2><textarea id="csvt" rows="8" readonly>${esc(csv())}</textarea>
-    <button class="btn mint" data-act="csvcopy">Copy</button><button class="btn" data-act="csvdl">Download .csv</button><button class="btn" data-act="close">Close</button>`)},
-  csvcopy(){$('csvt').select();navigator.clipboard?.writeText($('csvt').value).then(()=>toast('Copied'),()=>document.execCommand('copy'))},
-  csvdl(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv()],{type:'text/csv'}));a.download='mazequest-results.csv';a.click()},
-  clear(){if(confirm('Delete ALL attempt records?')){db.attempts=[];save();renderT()}},
-  go(d){const el=$('gname'),nm=(el&&el.value.trim())||d.n;muted=!$('gsnd').checked;startGame(nm,false)},
-  ans(d){answer(+d.i)},cont,
-  again(){startGame(last.name,last.preview)},
-  mute(d,b){muted=!muted;b.textContent=muted?'🔇 Muted':'🔊 Sound';music(!muted&&G&&!G.over)},
-  quit(){if(G)G.over=true;music(false);last&&last.preview?renderT():boot()}
-};
-document.addEventListener('click',e=>{const a=e.target.closest('[data-act]');if(a&&ACT[a.dataset.act])ACT[a.dataset.act](a.dataset,a)});
-document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='pinin')ACT.pinok()});
-boot();
+function tT(){const t=cfg.theme;$('#tbody').innerHTML=`<div class="card"><h3>Lesson themes</h3>${Object.entries(THEMES).map(([k,v])=>`<button data-k="${k}">${v.n}</button>`).join('')}
+<h3>Customize</h3><div class="row"><label>Wall color<br><input type="color" id="tw" value="${t.wall}"></label><label>Background<br><input type="color" id="tb" value="${t.bg}"></label></div>
+<div class="row"><label>Player<input id="tp" value="${t.p}"></label><label>Collectible<input id="tg" value="${t.g}"></label><label>Chaser<input id="tc" value="${t.c}"></label></div><p class="small">Tip: paste any emoji.</p>
+<button class="ok" id="ts">Save theme</button></div>`;
+$('#tbody').querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{cfg.theme={...THEMES[b.dataset.k]};saveCfg();tT()});
+$('#ts').onclick=()=>{cfg.theme={...cfg.theme,wall:$('#tw').value,bg:$('#tb').value,p:$('#tp').value||'🙂',g:$('#tg').value||'⭐',c:$('#tc').value||'👾'};saveCfg();alert('Saved!')}}
+function csv(){const rows=[['Student','Attempt','Date','Score','Stars','Result','Seconds','Missed questions','Wrong answers chosen']];
+logs.forEach(l=>rows.push([l.s,l.n,new Date(l.d).toLocaleString(),l.score,l.stars,l.win?'Won':'Lost',l.secs,l.missed.map(m=>m.q).join(' | '),l.missed.map(m=>m.ch).join(' | ')]));
+return rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n')}
+function tS(){const by={};logs.forEach(l=>(by[l.s]??=[]).push(l));const qm={};logs.forEach(l=>l.missed.forEach(m=>{const o=qm[m.q]??={n:0,w:{}};o.n++;o.w[m.ch]=(o.w[m.ch]||0)+1}));
+$('#tbody').innerHTML=`<div class="card"><h3>📡 Google Sheets live sync</h3><input id="shu" placeholder="Apps Script web-app URL (…/exec)" value="${esc(cfg.sheetUrl||'')}"><button id="shs">Save</button>
+<details><summary class="small">Apps Script to paste (Deploy → Web app → Anyone)</summary><pre class="small" style="white-space:pre-wrap">function doPost(e){var d=JSON.parse(e.postData.contents);SpreadsheetApp.getActiveSheet().appendRow([d.ts,d.sessionId,d.student,d.attempt,d.type,d.question,d.studentAnswer,d.modelAnswer,d.passed]);return ContentService.createTextOutput('ok')}</pre></details></div>
+<div class="card"><button id="csv">⬇ Export Results to CSV</button><button class="bad" id="clr">Clear logs</button><div id="csvbox"></div></div>
+<div class="card tw"><h3>Students</h3><table><tr><th>Student</th><th>Attempts</th><th>Best</th><th>Latest</th><th>Avg time</th><th>Missed</th></tr>
+${Object.entries(by).map(([s,a])=>`<tr><td>${esc(s)}</td><td>${a.length}</td><td>${Math.max(...a.map(x=>x.score))}</td><td>${a[a.length-1].score}</td><td>${Math.round(a.reduce((t,x)=>t+x.secs,0)/a.length)}s<br><span class="small">${a.map(x=>x.secs+'s').join(', ')}</span></td><td class="small">${esc([...new Set(a.flatMap(x=>x.missed.map(m=>m.q)))].join('; '))||'—'}</td></tr>`).join('')||'<tr><td colspan="6">No attempts yet.</td></tr>'}</table></div>
+<div class="card tw"><h3>Question breakdown / common pitfalls</h3><table><tr><th>Question</th><th>Times missed</th><th>Wrong answers picked</th></tr>
+${Object.entries(qm).sort((a,b)=>b[1].n-a[1].n).map(([q,o])=>`<tr><td>${esc(q)}</td><td>${o.n}</td><td>${Object.entries(o.w).sort((a,b)=>b[1]-a[1]).map(([w,n])=>esc(w)+' ×'+n).join(', ')}</td></tr>`).join('')||'<tr><td colspan="3">Nothing missed yet 🎉</td></tr>'}</table></div>`;
+$('#shs').onclick=()=>{cfg.sheetUrl=$('#shu').value.trim();saveCfg();alert('Saved')};
+$('#csv').onclick=()=>{const t=csv();try{const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'text/csv'}));a.download='mazequest-results.csv';a.click()}catch(e){}
+$('#csvbox').innerHTML='<p class="small">If no download started, copy the CSV below:</p><textarea rows="6" readonly id="cta"></textarea>';$('#cta').value=t;$('#cta').select()};
+$('#clr').onclick=()=>{if(confirm('Delete all attempt logs?')){logs=[];Store.set('logs',logs);tS()}}}
+/* ===== GAME ===== */
+const MAZE=["###############","#P.....#.....Q#","#.##.#...#.##.#","#....#.#.#....#","#.####.#.####.#","#Q.....C.....Q#","#.####.#.####.#","#....#.#.#....#","#.##.#...#.##.#","#.....#.#.....#","#.###.....###.#","#Q.....C.....Q#","###############"];
+const T=32,DIRS=[{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}],cv=$('#cv'),cx=cv.getContext('2d');let G=null;
+const shuffle=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);
+function startGame(name){const g=MAZE.map(r=>r.split(''));let p,ch=[],gems=0;
+g.forEach((r,y)=>r.forEach((c,x)=>{if(c==='P'){p={x,y};r[x]=' '}else if(c==='C'){ch.push({x,y,sx:x,sy:y,d:{x:1,y:0}});r[x]=' '}else if(c==='.'||c==='Q')gems++}));
+G={name,g,px:p.x,py:p.y,sx:p.x,sy:p.y,dir:{x:0,y:0},want:{x:0,y:0},ch,lives:3,score:0,gems,qs:shuffle(cfg.qs),qi:0,sid:mkToken(),n:logs.filter(l=>l.s===name).length+1,missed:[],paused:false,over:false,ms:0,pa:0,ca:0,boost:0,freeze:0,inv:0};
+show('game');$('#modal').innerHTML='';{const c=$('#conf');c.getContext('2d').clearRect(0,0,c.width,c.height)}hud();music(true);last=performance.now();requestAnimationFrame(loop)}
+const wall=(x,y)=>MAZE[y]?.[x]==='#'||MAZE[y]?.[x]===undefined;
+function hud(){$('#hs').textContent='⭐ '+G.score;$('#hl').textContent='❤️'.repeat(G.lives)||'💔';$('#hg').textContent='🎯 '+G.gems+' left'}
+function stepP(){const w=G.want,d=G.dir;if(!wall(G.px+w.x,G.py+w.y))G.dir={...w};else if(wall(G.px+d.x,G.py+d.y))return;
+G.px+=G.dir.x;G.py+=G.dir.y;const c=G.g[G.py][G.px];
+if(c==='.'){G.g[G.py][G.px]=' ';G.score+=10;G.gems--;sfx.gem()}else if(c==='Q'){ask()}
+hud();chk();if(G.gems<=0&&!G.paused)finish(true)}
+function stepC(c){const ok=DIRS.filter(d=>!wall(c.x+d.x,c.y+d.y)),fw=ok.filter(d=>!(d.x===-c.d.x&&d.y===-c.d.y)),o=fw.length?fw:ok;
+const dist=d=>(c.x+d.x-G.px)**2+(c.y+d.y-G.py)**2,d=Math.random()<.6?[...o].sort((a,b)=>dist(a)-dist(b))[0]:o[Math.random()*o.length|0];c.x+=d.x;c.y+=d.y;c.d=d}
+function chk(){if(G.inv>0||G.freeze>0||G.paused)return;if(G.ch.some(c=>c.x===G.px&&c.y===G.py))lose()}
+function lose(){G.lives--;sfx.bad();G.px=G.sx;G.py=G.sy;G.dir={x:0,y:0};G.want={x:0,y:0};G.ch.forEach(c=>{c.x=c.sx;c.y=c.sy});G.inv=2000;hud();if(G.lives<=0)finish(false)}
+let last=0;
+function loop(t){if(!G||G.over)return;const dt=Math.min(60,t-last);last=t;
+if(!G.paused){G.ms+=dt;G.pa+=dt;const ps=G.boost>0?110:170;while(G.pa>=ps&&!G.paused){G.pa-=ps;stepP()}
+if(G.freeze<=0){G.ca+=dt;while(G.ca>=300){G.ca-=300;G.ch.forEach(stepC);chk()}}
+G.boost=Math.max(0,G.boost-dt);G.freeze=Math.max(0,G.freeze-dt);G.inv=Math.max(0,G.inv-dt)}
+draw();requestAnimationFrame(loop)}
+function draw(){const th=cfg.theme;cx.fillStyle=th.bg;cx.fillRect(0,0,480,416);cx.textAlign='center';cx.textBaseline='middle';
+G.g.forEach((r,y)=>r.forEach((c,x)=>{const X=x*T,Y=y*T;if(c==='#'){cx.fillStyle=th.wall;cx.beginPath();cx.roundRect(X+2,Y+2,T-4,T-4,8);cx.fill()}
+else if(c==='.'){cx.font='14px serif';cx.fillText(th.g,X+16,Y+17)}
+else if(c==='Q'){cx.fillStyle='rgba(255,215,0,'+(.5+.4*Math.sin(performance.now()/200))+')';cx.beginPath();cx.arc(X+16,Y+16,14,0,7);cx.fill();cx.font='18px serif';cx.fillText('❓',X+16,Y+17)}}));
+cx.font='24px serif';G.ch.forEach(c=>{cx.globalAlpha=G.freeze>0?.5:1;cx.fillText(G.freeze>0?'🧊':th.c,c.x*T+16,c.y*T+17)});
+cx.globalAlpha=G.inv>0&&Math.floor(G.inv/150)%2?.3:1;cx.fillText(th.p,G.px*T+16,G.py*T+17);cx.globalAlpha=1;
+if(G.boost>0){cx.font='12px sans-serif';cx.fillStyle=th.wall;cx.fillText('⚡ SPEED',60,404)}}
+/* ===== QUESTIONS ===== */
+const LBL={mcq:'🌟 Portal question!',complete:'✏️ Complete the sentence',give_reason:'💡 Give a reason',what_happens:'🔮 What happens?',correct:'🔧 Fix the mistake'};
+const qH=t=>esc(t).replace(/\*(.+?)\*/g,'<u style="text-decoration-color:var(--bad);text-decoration-thickness:3px">$1</u>');
+/* ===== SMART KEYWORD ENGINE =====
+   normalize (lowercase, strip punctuation/extra spaces) then require EVERY comma-separated group;
+   inside a group any "|" synonym counts (prefix match, so plurals work). */
+const norm=s=>String(s).toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g,' ').trim();
+const reEsc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+function grade(q,txt){const t=' '+norm(txt),gs=(q.kw||'').split(',').map(s=>s.trim()).filter(Boolean),alts=[],miss=[];
+gs.forEach(g=>{const m=g.split('|').map(norm).filter(Boolean).find(a=>t.includes(' '+a));m?alts.push(m):miss.push(g)});return{ok:gs.length>0&&!miss.length,alts,miss}}
+const hlight=(v,alts)=>{let h=esc(v);if(alts.length)h=h.replace(new RegExp('('+alts.map(a=>reEsc(esc(a))).join('|')+')','gi'),'<mark class="g">$1</mark>');return h};
+/* Live sync: one POST per answer to the teacher's Google Sheet (cache-busted, never cached). */
+function sync(p){if(preview||!cfg.sheetUrl)return;try{fetch(cfg.sheetUrl+(cfg.sheetUrl.includes('?')?'&':'?')+'_='+Date.now(),{method:'POST',mode:'no-cors',cache:'no-store',keepalive:true,headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(p)}).catch(()=>{})}catch(e){}}
+function ask(){if(!G.qs.length){G.g[G.py][G.px]=' ';G.gems--;G.score+=20;return}
+G.paused=true;const q=G.qs[G.qi++%G.qs.length],ty=q.type||'mcq',ord=shuffle((q.c||[]).map((c,i)=>i)),qx=G.px,qy=G.py;
+$('#modal').innerHTML=`<div class="ov"><div class="card" id="qc"><h3>${LBL[ty]}</h3>${q.img?`<img class="qi" src="${esc(q.img)}" alt="">`:''}<p style="font-size:1.2rem"><b>${qH(q.q)}</b></p>${ty==='mcq'?ord.map(i=>`<button class="ch" data-i="${i}">${esc(q.c[i])}</button>`).join(''):'<textarea id="ans" rows="3" placeholder="Type your answer…"></textarea><button id="sub">Submit ✅</button>'}<div id="fb"></div></div></div>`;
+setTimeout(()=>{const t=$('#ans');if(t)t.focus()},50);
+const done=(ok,sa,model,html)=>{
+ if(ok||ty==='mcq'){G.g[qy][qx]=' ';G.gems--;G.score+=ok?70:20}   /* written wrong answer: door (tile) stays locked */
+ if(ok){sfx.good();G.boost=6000;G.freeze=5000;if(ty!=='mcq')confetti()}
+ else{sfx.bad();$('#qc').classList.add('wob');G.lives--;G.missed.push({type:ty,q:q.q,ch:sa,ok:model,e:q.e||''})}
+ hud();sync({ts:new Date().toISOString(),sessionId:G.sid,student:G.name,attempt:G.n,type:ty,question:q.q,studentAnswer:sa,modelAnswer:model,passed:ok});
+ $('#fb').innerHTML=html+'<button class="ok" id="cont">Continue ▶</button>';
+ $('#cont').onclick=()=>{$('#modal').innerHTML='';G.paused=false;if(G.lives<=0)return finish(false);if(!ok)G.inv=1500;hud();if(G.gems<=0)finish(true)}};
+if(ty==='mcq')$('#modal').querySelectorAll('.ch').forEach(b=>b.onclick=()=>{const i=+b.dataset.i,ok=i===q.a;$('#modal').querySelectorAll('.ch').forEach(x=>{x.disabled=true;if(+x.dataset.i===q.a)x.classList.add('right')});if(!ok)b.classList.add('wrong');
+ done(ok,q.c[i],q.c[q.a],ok?'<h3>🎉 Correct! Speed boost + chasers frozen!</h3>':`<h3>Oops, not quite! 💪</h3><p>The answer is <b>${esc(q.c[q.a])}</b>. ${esc(q.e)}</p>`)});
+else $('#sub').onclick=()=>{const v=$('#ans').value.trim();if(!v)return;$('#ans').disabled=true;$('#sub').remove();const r=grade(q,v),hl=hlight(v,r.alts);
+ done(r.ok,v,q.model,r.ok?`<h3>🎉 Correct! The door opens 🚪✨</h3><div class="pp">${hl}</div>`:`<h3>Not quite — the door stays locked 🔒 (−1 ❤️)</h3><div class="row"><div class="pp"><b>You wrote</b><br>${hl}</div><div class="pp"><b>Model answer</b><br>${esc(q.model)}</div></div><p class="miss">Missing idea: ${r.miss.map(m=>esc(m.split('|').join(' / '))).join(', ')}</p>${q.e?`<p class="small">${esc(q.e)}</p>`:''}`)}}
+/* ===== END + ANALYTICS TRACKING =====
+   finish() pushes one record per run to logs (attempt index = previous runs by this student + 1).
+   The teacher's Analytics tab reads the same Store, groups by student and aggregates the `missed` arrays. */
+function finish(win){G.over=true;music(false);const stars=win?Math.max(1,G.lives):(G.score>=100?1:0),secs=Math.round(G.ms/1000);
+if(!preview){const n=logs.filter(l=>l.s===G.name).length+1;logs.push({s:G.name,n,d:Date.now(),score:G.score,stars,win,secs,missed:G.missed});Store.set('logs',logs)}
+win?sfx.win():sfx.bad();show('end');$('#etitle').textContent=win?'🏆 You did it!':'Good try! 💪';$('#estars').textContent='⭐'.repeat(stars)+'☆'.repeat(3-stars);$('#escore').textContent='Score '+G.score+' · '+secs+'s'+(preview?' (preview, not logged)':'');
+$('#erev').innerHTML=G.missed.length?'<h3>Questions to review</h3>'+G.missed.map(m=>`<p>❓ <b>${esc(m.q)}</b><br>✅ ${esc(m.ok)}<br><span class="small">${esc(m.e)}</span></p>`).join(''):'<p class="center">Perfect answers! 🌈</p>';
+if(win)confetti()}
+$('#again').onclick=()=>startGame(G.name);
+function confetti(){const c=$('#conf'),k=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;const P=Array.from({length:120},()=>({x:Math.random()*c.width,y:-20-Math.random()*300,v:2+Math.random()*4,r:4+Math.random()*6,c:`hsl(${Math.random()*360},90%,60%)`}));let f=0;
+(function a(){k.clearRect(0,0,c.width,c.height);P.forEach(p=>{p.y+=p.v;p.x+=Math.sin(p.y/30);k.fillStyle=p.c;k.fillRect(p.x,p.y,p.r,p.r*1.6)});if(++f<240)requestAnimationFrame(a);else k.clearRect(0,0,c.width,c.height)})()}
+/* ===== CONTROLS ===== */
+const KM={ArrowUp:[0,-1],w:[0,-1],ArrowDown:[0,1],s:[0,1],ArrowLeft:[-1,0],a:[-1,0],ArrowRight:[1,0],d:[1,0]};
+addEventListener('keydown',e=>{const k=KM[e.key.length>1?e.key:e.key.toLowerCase()];if(k&&G&&!G.over&&!G.paused&&!$('#game').hidden&&!/^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName||''))&&!$('#modal').firstChild){G.want={x:k[0],y:k[1]};e.preventDefault()}});
+document.querySelectorAll('#dpad [data-d]').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();const[x,y]=b.dataset.d.split(',').map(Number);if(G)G.want={x,y}}));
+let ts;cv.addEventListener('touchstart',e=>{ts=e.touches[0]},{passive:true});
+cv.addEventListener('touchend',e=>{if(!ts||!G)return;const t=e.changedTouches[0],dx=t.clientX-ts.clientX,dy=t.clientY-ts.clientY;if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;G.want=Math.abs(dx)>Math.abs(dy)?{x:Math.sign(dx),y:0}:{x:0,y:Math.sign(dy)}});
+/* ===== ENTRY GATE ===== */
+if(params.has('token')){const r=validate();if(!r)show('denied');else{show('gate');$('#gname').value=r.name;student=r;
+$('#gstart').onclick=()=>{AC=AC||new(window.AudioContext||window.webkitAudioContext)();sound=$('#gsnd').checked;$('#mute').textContent=sound?'🔊':'🔇';startGame($('#gname').value.trim()||r.name)}}}
 </script></body></html>

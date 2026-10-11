@@ -35,11 +35,11 @@ mark.g{background:#b8f5c9;color:#14532d;border-radius:4px;padding:0 3px}.miss{co
 <!-- GATE -->
 <section class="view center" id="gate" hidden><div class="card"><h1>Ready to play? 🎮</h1><p>Confirm your name:</p><input id="gname" maxlength="30"><label><input type="checkbox" id="gsnd" checked style="width:auto"> 🔊 Sound & music</label><br><button class="ok" id="gstart">Start Quest!</button></div></section>
 <!-- GAME -->
-<section class="view center" id="game" hidden><div id="hud"><span id="hs"></span><span id="hl"></span><span id="hg"></span><button id="mute" style="padding:2px 12px">🔊</button></div><canvas id="cv" width="480" height="416"></canvas>
+<section class="view center" id="game" hidden><div id="hud"><span id="hs"></span><span id="hl"></span><span id="hg"></span><button id="mute" style="padding:2px 12px">🔊</button></div><button class="alt pb" hidden>← Back to Teacher</button><canvas id="cv" width="480" height="416"></canvas>
 <div id="dpad"><span></span><button data-d="0,-1">▲</button><span></span><button data-d="-1,0">◀</button><button data-d="0,1">▼</button><button data-d="1,0">▶</button></div>
 <p class="small">Arrow keys / WASD, swipe, or the pad. Grab gems, dodge chasers, enter ❓ portals!</p></section>
 <!-- END -->
-<section class="view center" id="end" hidden><div class="card"><h1 id="etitle"></h1><div class="big" id="estars"></div><h2 id="escore"></h2><div id="erev" style="text-align:left"></div><button class="ok" id="again">Play Again 🔁</button></div></section>
+<section class="view center" id="end" hidden><div class="card"><h1 id="etitle"></h1><div class="big" id="estars"></div><h2 id="escore"></h2><div id="erev" style="text-align:left"></div><button class="ok" id="again">Play Again 🔁</button><button class="alt pb" hidden>← Back to Teacher</button></div></section>
 <!-- TEACHER -->
 <section class="view" id="teacher" hidden><h1>🍎 Teacher Dashboard</h1>
 <div class="tabs" id="tabs"></div><div id="tbody"></div></section>
@@ -63,12 +63,28 @@ const DEF={pin:'1234',theme:{...THEMES.space},roster:[],qs:[
 let cfg=Store.get('cfg',DEF),logs=Store.get('logs',[]);cfg.qs.forEach(q=>q.type??='mcq');const saveCfg=()=>Store.set('cfg',cfg);
 const show=id=>document.querySelectorAll('.view').forEach(v=>v.hidden=v.id!==id);
 const params=new URLSearchParams(location.search);let student=null,preview=false;
-/* ===== TEACHER LINK VALIDATION =====
-   Each roster entry = {name, token (random 8-byte hex), exp (timestamp or 0)}.
-   A link is valid only if token AND student name both match the same roster entry and it hasn't expired.
-   Anything else shows the Access Denied screen. (Client-side check: for strong security, validate on a server.) */
-function validate(){const t=params.get('token'),s=(params.get('student')||'').trim().toLowerCase();
-return cfg.roster.find(r=>r.token===t&&r.name.toLowerCase()===s&&(!r.exp||Date.now()<r.exp))}
+/* ===== SIGNED STUDENT LINKS =====
+   Link = ?student=NAME&code=RANDOM[&exp=TIMESTAMP]&d=PACKED_CONFIG&sig=HMAC
+   sig = HMAC-SHA256(CLASS_SECRET, student|code|exp|d). Opening a link recomputes it: editing the name, code, expiry
+   or packed questions breaks the signature. "d" carries the questions/theme/sheet URL, so links work on ANY device.
+   Any failure (bad sig, expired, unreadable data) shows Access Denied; a link NEVER opens the Teacher Portal.
+   NOTE: CLASS_SECRET is inside this file: it stops casual sharing/tampering, not a determined hacker. Change it before hosting. */
+const CLASS_SECRET='mazequest-change-this-secret';
+const TE=new TextEncoder(),TD=new TextDecoder();
+const b64u=u=>{let s='';u.forEach(b=>s+=String.fromCharCode(b));return btoa(s).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
+const unb64u=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')),c=>c.charCodeAt(0));
+async function sign(m){if(window.crypto&&crypto.subtle){const k=await crypto.subtle.importKey('raw',TE.encode(CLASS_SECRET),{name:'HMAC',hash:'SHA-256'},false,['sign']);return b64u(new Uint8Array(await crypto.subtle.sign('HMAC',k,TE.encode(m))))}
+let a=0xdeadbeef,b=0x41c6ce57;for(const c of CLASS_SECRET+m){a=Math.imul(a^c.charCodeAt(0),2654435761);b=Math.imul(b^c.charCodeAt(0),1597334677)}return 'x'+(a>>>0).toString(36)+(b>>>0).toString(36)} /* weak fallback for non-HTTPS pages */
+async function pack(o){const u=TE.encode(JSON.stringify(o));if(window.CompressionStream){const st=new Blob([u]).stream().pipeThrough(new CompressionStream('gzip'));return 'z'+b64u(new Uint8Array(await new Response(st).arrayBuffer()))}return 'j'+b64u(u)}
+async function unpack(s){const u=unb64u(s.slice(1));if(s[0]==='z'){const st=new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'));return JSON.parse(TD.decode(await new Response(st).arrayBuffer()))}return JSON.parse(TD.decode(u))}
+const cfgPayload=()=>({qs:cfg.qs.map(q=>({...q,img:(q.img||'').startsWith('data:')?'':(q.img||'')})),theme:cfg.theme,sheetUrl:cfg.sheetUrl||''});
+async function mkLink(r){const d=await pack(cfgPayload()),exp=r.exp||0,sig=await sign([r.name,r.token,exp,d].join('|'));
+return location.href.split(/[?#]/)[0]+'?student='+encodeURIComponent(r.name)+'&code='+r.token+(exp?'&exp='+exp:'')+'&d='+d+'&sig='+sig}
+async function verify(){const n=(params.get('student')||'').trim(),c=params.get('code'),exp=+(params.get('exp')||0),d=params.get('d')||'',sig=params.get('sig');
+if(!n||!c||!sig||sig!==await sign([n,c,exp,d].join('|'))||(exp&&Date.now()>exp))return null;
+if(d){const o=await unpack(d);if(!Array.isArray(o.qs)||!o.qs.length)return null;
+cfg={...cfg,qs:o.qs.map(q=>({type:'mcq',c:['','','',''],a:0,e:'',img:'',kw:'',model:'',...q})),theme:{...THEMES.space,...o.theme},sheetUrl:o.sheetUrl||''}}
+return n}
 const mkToken=()=>[...crypto.getRandomValues(new Uint8Array(8))].map(b=>b.toString(16).padStart(2,'0')).join('');
 /* ===== AUDIO (Web Audio) ===== */
 let AC,sound=true,mus;
@@ -107,12 +123,12 @@ if(editing!=null)cfg.qs[cfg.qs.findIndex(x=>x.id===editing)]=o;else cfg.qs.push(
 if($('#qc'))$('#qc').onclick=()=>{editing=null;tQ()};
 $('#tbody').querySelectorAll('[data-e]').forEach(b=>b.onclick=()=>{editing=+b.dataset.e;tQ();scrollTo(0,0)});
 $('#tbody').querySelectorAll('[data-x]').forEach(b=>b.onclick=()=>{if(confirm('Delete this question?')){cfg.qs=cfg.qs.filter(x=>x.id!==+b.dataset.x);saveCfg();tQ()}})}
-const link=r=>location.origin+location.pathname+'?token='+r.token+'&student='+encodeURIComponent(r.name);
 function tA(){$('#tbody').innerHTML=`<div class="card"><h3>Authorized students</h3><textarea id="names" rows="4" placeholder="One name or ID per line"></textarea>
-<div class="row"><input id="exp" type="number" min="0" value="0" placeholder="Hours until expiry (0 = never)"><button id="gen">Generate links</button></div><p class="small">Each link only works for its own student name + token. Re-generating a name issues a new token and kills the old link.</p></div>
-<div class="card tw"><table><tr><th>Student</th><th>Link</th><th></th></tr>${cfg.roster.map((r,i)=>`<tr><td>${esc(r.name)}${r.exp?`<br><span class="small">expires ${new Date(r.exp).toLocaleString()}</span>`:''}</td><td><code>${esc(link(r))}</code></td><td><button data-c="${i}">Copy</button><button class="bad" data-d="${i}">🗑</button></td></tr>`).join('')}</table></div>`;
+<div class="row"><input id="exp" type="number" min="0" value="0" placeholder="Hours until expiry (0 = never)"><button id="gen">Generate links</button></div><p class="small">Links are signed and carry your current questions/theme, so they work on any device. After editing questions, copy fresh links.</p></div>
+<div class="card tw"><table><tr><th>Student</th><th>Link</th><th></th></tr>${cfg.roster.map((r,i)=>`<tr><td>${esc(r.name)}${r.exp?`<br><span class="small">expires ${new Date(r.exp).toLocaleString()}</span>`:''}</td><td><code data-l="${i}">…</code></td><td><button data-c="${i}">Copy</button><button class="bad" data-d="${i}">🗑</button></td></tr>`).join('')}</table></div>`;
+cfg.roster.forEach(async(r,i)=>{const el=document.querySelector('[data-l="'+i+'"]');if(el)el.textContent=await mkLink(r)});
 $('#gen').onclick=()=>{const h=+$('#exp').value||0;$('#names').value.split('\n').map(s=>s.trim()).filter(Boolean).forEach(n=>{cfg.roster=cfg.roster.filter(r=>r.name.toLowerCase()!==n.toLowerCase());cfg.roster.push({name:n,token:mkToken(),exp:h?Date.now()+h*36e5:0})});saveCfg();tA()};
-$('#tbody').querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{const t=link(cfg.roster[b.dataset.c]);navigator.clipboard?.writeText(t).then(()=>b.textContent='Copied!',()=>prompt('Copy:',t))});
+$('#tbody').querySelectorAll('[data-c]').forEach(b=>b.onclick=()=>{const t=document.querySelector('[data-l="'+b.dataset.c+'"]').textContent;navigator.clipboard?.writeText(t).then(()=>b.textContent='Copied!',()=>prompt('Copy:',t))});
 $('#tbody').querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{cfg.roster.splice(b.dataset.d,1);saveCfg();tA()});
 }
 function tT(){const t=cfg.theme;$('#tbody').innerHTML=`<div class="card"><h3>Lesson themes</h3>${Object.entries(THEMES).map(([k,v])=>`<button data-k="${k}">${v.n}</button>`).join('')}
@@ -143,7 +159,7 @@ const shuffle=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(p=>p[1])
 function startGame(name){const g=MAZE.map(r=>r.split(''));let p,ch=[],gems=0;
 g.forEach((r,y)=>r.forEach((c,x)=>{if(c==='P'){p={x,y};r[x]=' '}else if(c==='C'){ch.push({x,y,sx:x,sy:y,d:{x:1,y:0}});r[x]=' '}else if(c==='.'||c==='Q')gems++}));
 G={name,g,px:p.x,py:p.y,sx:p.x,sy:p.y,dir:{x:0,y:0},want:{x:0,y:0},ch,lives:3,score:0,gems,qs:shuffle(cfg.qs),qi:0,sid:mkToken(),n:logs.filter(l=>l.s===name).length+1,missed:[],paused:false,over:false,ms:0,pa:0,ca:0,boost:0,freeze:0,inv:0};
-show('game');$('#modal').innerHTML='';{const c=$('#conf');c.getContext('2d').clearRect(0,0,c.width,c.height)}hud();music(true);last=performance.now();requestAnimationFrame(loop)}
+show('game');$('#modal').innerHTML='';cancelAnimationFrame(cfId);document.querySelectorAll('.pb').forEach(b=>b.hidden=!preview);{const c=$('#conf');c.getContext('2d').clearRect(0,0,c.width,c.height)}hud();music(true);cancelAnimationFrame(raf);last=performance.now();raf=requestAnimationFrame(loop)}
 const wall=(x,y)=>MAZE[y]?.[x]==='#'||MAZE[y]?.[x]===undefined;
 function hud(){$('#hs').textContent='⭐ '+G.score;$('#hl').textContent='❤️'.repeat(G.lives)||'💔';$('#hg').textContent='🎯 '+G.gems+' left'}
 function stepP(){const w=G.want,d=G.dir;if(!wall(G.px+w.x,G.py+w.y))G.dir={...w};else if(wall(G.px+d.x,G.py+d.y))return;
@@ -154,12 +170,12 @@ function stepC(c){const ok=DIRS.filter(d=>!wall(c.x+d.x,c.y+d.y)),fw=ok.filter(d
 const dist=d=>(c.x+d.x-G.px)**2+(c.y+d.y-G.py)**2,d=Math.random()<.6?[...o].sort((a,b)=>dist(a)-dist(b))[0]:o[Math.random()*o.length|0];c.x+=d.x;c.y+=d.y;c.d=d}
 function chk(){if(G.inv>0||G.freeze>0||G.paused)return;if(G.ch.some(c=>c.x===G.px&&c.y===G.py))lose()}
 function lose(){G.lives--;sfx.bad();G.px=G.sx;G.py=G.sy;G.dir={x:0,y:0};G.want={x:0,y:0};G.ch.forEach(c=>{c.x=c.sx;c.y=c.sy});G.inv=2000;hud();if(G.lives<=0)finish(false)}
-let last=0;
+let last=0,raf=0,cfId=0;
 function loop(t){if(!G||G.over)return;const dt=Math.min(60,t-last);last=t;
 if(!G.paused){G.ms+=dt;G.pa+=dt;const ps=G.boost>0?110:170;while(G.pa>=ps&&!G.paused){G.pa-=ps;stepP()}
 if(G.freeze<=0){G.ca+=dt;while(G.ca>=300){G.ca-=300;G.ch.forEach(stepC);chk()}}
 G.boost=Math.max(0,G.boost-dt);G.freeze=Math.max(0,G.freeze-dt);G.inv=Math.max(0,G.inv-dt)}
-draw();requestAnimationFrame(loop)}
+draw();raf=requestAnimationFrame(loop)}
 function draw(){const th=cfg.theme;cx.fillStyle=th.bg;cx.fillRect(0,0,480,416);cx.textAlign='center';cx.textBaseline='middle';
 G.g.forEach((r,y)=>r.forEach((c,x)=>{const X=x*T,Y=y*T;if(c==='#'){cx.fillStyle=th.wall;cx.beginPath();cx.roundRect(X+2,Y+2,T-4,T-4,8);cx.fill()}
 else if(c==='.'){cx.font='14px serif';cx.fillText(th.g,X+16,Y+17)}
@@ -176,13 +192,14 @@ const qH=t=>esc(t).replace(/\*(.+?)\*/g,'<u style="text-decoration-color:var(--b
 const norm=s=>String(s).toLowerCase().replace(/[^\p{L}\p{N}\s]/gu,' ').replace(/\s+/g,' ').trim();
 const reEsc=s=>s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 function grade(q,txt){const t=' '+norm(txt),gs=(q.kw||'').split(',').map(s=>s.trim()).filter(Boolean),alts=[],miss=[];
-gs.forEach(g=>{const m=g.split('|').map(norm).filter(Boolean).find(a=>t.includes(' '+a));m?alts.push(m):miss.push(g)});return{ok:gs.length>0&&!miss.length,alts,miss}}
+gs.forEach(g=>{const m=g.split('|').map(norm).filter(Boolean).find(a=>new RegExp('(^| )'+reEsc(a)+'(s|es|ed|d|ing|er|ly)?( |$)').test(t));m?alts.push(m):miss.push(g)});return{ok:gs.length>0&&!miss.length,alts,miss}}
 const hlight=(v,alts)=>{let h=esc(v);if(alts.length)h=h.replace(new RegExp('('+alts.map(a=>reEsc(esc(a))).join('|')+')','gi'),'<mark class="g">$1</mark>');return h};
 /* Live sync: one POST per answer to the teacher's Google Sheet (cache-busted, never cached). */
 function sync(p){if(preview||!cfg.sheetUrl)return;try{fetch(cfg.sheetUrl+(cfg.sheetUrl.includes('?')?'&':'?')+'_='+Date.now(),{method:'POST',mode:'no-cors',cache:'no-store',keepalive:true,headers:{'Content-Type':'text/plain;charset=utf-8'},body:JSON.stringify(p)}).catch(()=>{})}catch(e){}}
 function ask(){if(!G.qs.length){G.g[G.py][G.px]=' ';G.gems--;G.score+=20;return}
 G.paused=true;const q=G.qs[G.qi++%G.qs.length],ty=q.type||'mcq',ord=shuffle((q.c||[]).map((c,i)=>i)),qx=G.px,qy=G.py;
-$('#modal').innerHTML=`<div class="ov"><div class="card" id="qc"><h3>${LBL[ty]}</h3>${q.img?`<img class="qi" src="${esc(q.img)}" alt="">`:''}<p style="font-size:1.2rem"><b>${qH(q.q)}</b></p>${ty==='mcq'?ord.map(i=>`<button class="ch" data-i="${i}">${esc(q.c[i])}</button>`).join(''):'<textarea id="ans" rows="3" placeholder="Type your answer…"></textarea><button id="sub">Submit ✅</button>'}<div id="fb"></div></div></div>`;
+$('#modal').innerHTML=`<div class="ov"><div class="card" id="qc"><h3>${LBL[ty]}</h3>${q.img?`<img class="qi" src="${esc(q.img)}" alt="">`:''}<p style="font-size:1.2rem"><b>${qH(q.q)}</b></p>${ty==='mcq'?ord.map(i=>`<button class="ch" data-i="${i}">${esc(q.c[i])}</button>`).join(''):(ty==='complete'||ty==='correct'?'<input id="ans" autocomplete="off" placeholder="Type your answer…">':'<textarea id="ans" rows="3" placeholder="Type your answer… (Enter to submit)"></textarea>')+'<button id="sub">Submit ✅</button>'}<div id="fb"></div></div></div>`;
+if($('#ans'))$('#ans').onkeydown=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();const b=$('#sub');if(b)b.click()}};
 setTimeout(()=>{const t=$('#ans');if(t)t.focus()},50);
 const done=(ok,sa,model,html)=>{
  if(ok||ty==='mcq'){G.g[qy][qx]=' ';G.gems--;G.score+=ok?70:20}   /* written wrong answer: door (tile) stays locked */
@@ -198,21 +215,24 @@ else $('#sub').onclick=()=>{const v=$('#ans').value.trim();if(!v)return;$('#ans'
 /* ===== END + ANALYTICS TRACKING =====
    finish() pushes one record per run to logs (attempt index = previous runs by this student + 1).
    The teacher's Analytics tab reads the same Store, groups by student and aggregates the `missed` arrays. */
-function finish(win){G.over=true;music(false);const stars=win?Math.max(1,G.lives):(G.score>=100?1:0),secs=Math.round(G.ms/1000);
+function finish(win){if(G.over)return;G.over=true;music(false);$('#modal').innerHTML='';const stars=win?Math.max(1,G.lives):(G.score>=100?1:0),secs=Math.round(G.ms/1000);
 if(!preview){const n=logs.filter(l=>l.s===G.name).length+1;logs.push({s:G.name,n,d:Date.now(),score:G.score,stars,win,secs,missed:G.missed});Store.set('logs',logs)}
 win?sfx.win():sfx.bad();show('end');$('#etitle').textContent=win?'🏆 You did it!':'Good try! 💪';$('#estars').textContent='⭐'.repeat(stars)+'☆'.repeat(3-stars);$('#escore').textContent='Score '+G.score+' · '+secs+'s'+(preview?' (preview, not logged)':'');
 $('#erev').innerHTML=G.missed.length?'<h3>Questions to review</h3>'+G.missed.map(m=>`<p>❓ <b>${esc(m.q)}</b><br>✅ ${esc(m.ok)}<br><span class="small">${esc(m.e)}</span></p>`).join(''):'<p class="center">Perfect answers! 🌈</p>';
 if(win)confetti()}
+document.querySelectorAll('.pb').forEach(b=>b.onclick=()=>{if(G)G.over=true;music(false);$('#modal').innerHTML='';preview=false;show('teacher')});
 $('#again').onclick=()=>startGame(G.name);
-function confetti(){const c=$('#conf'),k=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;const P=Array.from({length:120},()=>({x:Math.random()*c.width,y:-20-Math.random()*300,v:2+Math.random()*4,r:4+Math.random()*6,c:`hsl(${Math.random()*360},90%,60%)`}));let f=0;
-(function a(){k.clearRect(0,0,c.width,c.height);P.forEach(p=>{p.y+=p.v;p.x+=Math.sin(p.y/30);k.fillStyle=p.c;k.fillRect(p.x,p.y,p.r,p.r*1.6)});if(++f<240)requestAnimationFrame(a);else k.clearRect(0,0,c.width,c.height)})()}
+function confetti(){cancelAnimationFrame(cfId);const c=$('#conf'),k=c.getContext('2d');c.width=innerWidth;c.height=innerHeight;const P=Array.from({length:120},()=>({x:Math.random()*c.width,y:-20-Math.random()*300,v:2+Math.random()*4,r:4+Math.random()*6,c:`hsl(${Math.random()*360},90%,60%)`}));let f=0;
+(function a(){k.clearRect(0,0,c.width,c.height);P.forEach(p=>{p.y+=p.v;p.x+=Math.sin(p.y/30);k.fillStyle=p.c;k.fillRect(p.x,p.y,p.r,p.r*1.6)});if(++f<240)cfId=requestAnimationFrame(a);else k.clearRect(0,0,c.width,c.height)})()}
 /* ===== CONTROLS ===== */
 const KM={ArrowUp:[0,-1],w:[0,-1],ArrowDown:[0,1],s:[0,1],ArrowLeft:[-1,0],a:[-1,0],ArrowRight:[1,0],d:[1,0]};
 addEventListener('keydown',e=>{const k=KM[e.key.length>1?e.key:e.key.toLowerCase()];if(k&&G&&!G.over&&!G.paused&&!$('#game').hidden&&!/^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName||''))&&!$('#modal').firstChild){G.want={x:k[0],y:k[1]};e.preventDefault()}});
-document.querySelectorAll('#dpad [data-d]').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();const[x,y]=b.dataset.d.split(',').map(Number);if(G)G.want={x,y}}));
+document.querySelectorAll('#dpad [data-d]').forEach(b=>b.addEventListener('pointerdown',e=>{e.preventDefault();const[x,y]=b.dataset.d.split(',').map(Number);if(G&&!G.paused&&!G.over)G.want={x,y}}));
 let ts;cv.addEventListener('touchstart',e=>{ts=e.touches[0]},{passive:true});
-cv.addEventListener('touchend',e=>{if(!ts||!G)return;const t=e.changedTouches[0],dx=t.clientX-ts.clientX,dy=t.clientY-ts.clientY;if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;G.want=Math.abs(dx)>Math.abs(dy)?{x:Math.sign(dx),y:0}:{x:0,y:Math.sign(dy)}});
+cv.addEventListener('touchend',e=>{if(!ts||!G||G.paused||G.over)return;const t=e.changedTouches[0],dx=t.clientX-ts.clientX,dy=t.clientY-ts.clientY;if(Math.max(Math.abs(dx),Math.abs(dy))<24)return;G.want=Math.abs(dx)>Math.abs(dy)?{x:Math.sign(dx),y:0}:{x:0,y:Math.sign(dy)}});
 /* ===== ENTRY GATE ===== */
-if(params.has('token')){const r=validate();if(!r)show('denied');else{show('gate');$('#gname').value=r.name;student=r;
-$('#gstart').onclick=()=>{AC=AC||new(window.AudioContext||window.webkitAudioContext)();sound=$('#gsnd').checked;$('#mute').textContent=sound?'🔊':'🔇';startGame($('#gname').value.trim()||r.name)}}}
+const hasLink=['student','code','sig','token','d'].some(k=>params.has(k));
+if(hasLink){$('#home').hidden=true;(async()=>{let n=null;try{n=await verify()}catch(e){n=null}
+if(!n)return show('denied');show('gate');student=n;preview=false;$('#gname').value=n;
+$('#gstart').onclick=()=>{try{AC=AC||new(window.AudioContext||window.webkitAudioContext)()}catch(e){}sound=$('#gsnd').checked;$('#mute').textContent=sound?'🔊':'🔇';startGame($('#gname').value.trim()||n)}})()}
 </script></body></html>

@@ -33,13 +33,13 @@ mark.g{background:#b8f5c9;color:#14532d;border-radius:4px;padding:0 3px}.miss{co
 <!-- DENIED -->
 <section class="view center" id="denied" hidden><div class="big">🔒</div><h1>Access Denied</h1><p>Please ask your teacher for your unique access link.</p></section>
 <!-- GATE -->
-<section class="view center" id="gate" hidden><div class="card"><h1>Ready to play? 🎮</h1><p>Confirm your name:</p><input id="gname" maxlength="30"><label><input type="checkbox" id="gsnd" checked style="width:auto"> 🔊 Sound & music</label><br><button class="ok" id="gstart">Start Quest!</button></div></section>
+<section class="view center" id="gate" hidden><div class="card"><h1>Ready to play? 🎮</h1><p>Confirm your name:</p><input id="gname" maxlength="30"><label><input type="checkbox" id="gsnd" checked style="width:auto"> 🔊 Sound & music</label><br><label>Game speed <select id="gdiff" style="width:auto"></select></label><br><button class="ok" id="gstart">Start Quest!</button></div></section>
 <!-- GAME -->
 <section class="view center" id="game" hidden><div id="hud"><span id="hs"></span><span id="hl"></span><span id="hg"></span><button id="mute" style="padding:2px 12px">🔊</button></div><button class="alt pb" hidden>← Back to Teacher</button><canvas id="cv" width="480" height="416"></canvas>
 <div id="dpad"><span></span><button data-d="0,-1">▲</button><span></span><button data-d="-1,0">◀</button><button data-d="0,1">▼</button><button data-d="1,0">▶</button></div>
 <p class="small">Arrow keys / WASD, swipe, or the pad. Grab gems, dodge chasers, enter ❓ portals!</p></section>
 <!-- END -->
-<section class="view center" id="end" hidden><div class="card"><h1 id="etitle"></h1><div class="big" id="estars"></div><h2 id="escore"></h2><div id="erev" style="text-align:left"></div><button class="ok" id="again">Play Again 🔁</button><button class="alt pb" hidden>← Back to Teacher</button></div></section>
+<section class="view center" id="end" hidden><div class="card"><h1 id="etitle"></h1><div class="big" id="estars"></div><h2 id="escore"></h2><div id="erev" style="text-align:left"></div><label>Speed <select id="ediff" style="width:auto"></select></label><br><button class="ok" id="again">Play Again 🔁</button><button class="alt pb" hidden>← Back to Teacher</button></div></section>
 <!-- TEACHER -->
 <section class="view" id="teacher" hidden><h1>🍎 Teacher Dashboard</h1>
 <div class="tabs" id="tabs"></div><div id="tbody"></div></section>
@@ -77,13 +77,13 @@ async function sign(m){if(window.crypto&&crypto.subtle){const k=await crypto.sub
 let a=0xdeadbeef,b=0x41c6ce57;for(const c of CLASS_SECRET+m){a=Math.imul(a^c.charCodeAt(0),2654435761);b=Math.imul(b^c.charCodeAt(0),1597334677)}return 'x'+(a>>>0).toString(36)+(b>>>0).toString(36)} /* weak fallback for non-HTTPS pages */
 async function pack(o){const u=TE.encode(JSON.stringify(o));if(window.CompressionStream){const st=new Blob([u]).stream().pipeThrough(new CompressionStream('gzip'));return 'z'+b64u(new Uint8Array(await new Response(st).arrayBuffer()))}return 'j'+b64u(u)}
 async function unpack(s){const u=unb64u(s.slice(1));if(s[0]==='z'){const st=new Blob([u]).stream().pipeThrough(new DecompressionStream('gzip'));return JSON.parse(TD.decode(await new Response(st).arrayBuffer()))}return JSON.parse(TD.decode(u))}
-const cfgPayload=()=>({qs:cfg.qs.map(q=>({...q,img:(q.img||'').startsWith('data:')?'':(q.img||'')})),theme:cfg.theme,sheetUrl:cfg.sheetUrl||''});
+const cfgPayload=()=>({qs:cfg.qs.map(q=>({...q,img:(q.img||'').startsWith('data:')?'':(q.img||'')})),theme:cfg.theme,sheetUrl:cfg.sheetUrl||'',diff:cfg.diff||'standard'});
 async function mkLink(r){const d=await pack(cfgPayload()),exp=r.exp||0,sig=await sign([r.name,r.token,exp,d].join('|'));
 return location.href.split(/[?#]/)[0]+'?student='+encodeURIComponent(r.name)+'&code='+r.token+(exp?'&exp='+exp:'')+'&d='+d+'&sig='+sig}
 async function verify(){const n=(params.get('student')||'').trim(),c=params.get('code'),exp=+(params.get('exp')||0),d=params.get('d')||'',sig=params.get('sig');
 if(!n||!c||!sig||sig!==await sign([n,c,exp,d].join('|'))||(exp&&Date.now()>exp))return null;
 if(d){const o=await unpack(d);if(!Array.isArray(o.qs)||!o.qs.length)return null;
-cfg={...cfg,qs:o.qs.map(q=>({type:'mcq',c:['','','',''],a:0,e:'',img:'',kw:'',model:'',...q})),theme:{...THEMES.space,...o.theme},sheetUrl:o.sheetUrl||''}}
+cfg={...cfg,qs:o.qs.map(q=>({type:'mcq',c:['','','',''],a:0,e:'',img:'',kw:'',model:'',...q})),theme:{...THEMES.space,...o.theme},sheetUrl:o.sheetUrl||'',diff:DIFF[o.diff]?o.diff:'standard'}}
 return n}
 const mkToken=()=>[...crypto.getRandomValues(new Uint8Array(8))].map(b=>b.toString(16).padStart(2,'0')).join('');
 /* ===== AUDIO (Web Audio) ===== */
@@ -97,7 +97,7 @@ $('#mute').onclick=()=>setSound(!sound);
 $('#tbtn').onclick=()=>{show('teacher');tab('q')};
 const TABS={q:'❓ Questions',a:'🔗 Access Links',t:'🎨 Theme',s:'📊 Analytics'};
 function tab(t){$('#tabs').innerHTML=Object.entries(TABS).map(([k,v])=>`<button class="${k===t?'on':''}" data-t="${k}">${v}</button>`).join('')+'<button class="alt" id="prev">▶ Preview game</button><button class="bad" id="exit">Exit</button>';
-$('#tabs').querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>tab(b.dataset.t));$('#exit').onclick=()=>show('home');$('#prev').onclick=()=>{preview=true;startGame('Preview')};
+$('#tabs').querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>tab(b.dataset.t));$('#exit').onclick=()=>show('home');$('#prev').onclick=()=>{preview=true;curDiff=cfg.diff||'standard';startGame('Preview')};
 ({q:tQ,a:tA,t:tT,s:tS})[t]()}
 let editing=null;
 const TYPES={mcq:'Multiple Choice',complete:'Complete',give_reason:'Give reason for',what_happens:'What happens if',correct:'Correct the mistake'};
@@ -133,10 +133,11 @@ $('#tbody').querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>{cfg.roster.sp
 }
 function tT(){const t=cfg.theme;$('#tbody').innerHTML=`<div class="card"><h3>Lesson themes</h3>${Object.entries(THEMES).map(([k,v])=>`<button data-k="${k}">${v.n}</button>`).join('')}
 <h3>Customize</h3><div class="row"><label>Wall color<br><input type="color" id="tw" value="${t.wall}"></label><label>Background<br><input type="color" id="tb" value="${t.bg}"></label></div>
-<div class="row"><label>Player<input id="tp" value="${t.p}"></label><label>Collectible<input id="tg" value="${t.g}"></label><label>Chaser<input id="tc" value="${t.c}"></label></div><p class="small">Tip: paste any emoji.</p>
+<div class="row"><label>Player<input id="tp" value="${t.p}"></label><label>Collectible<input id="tg" value="${t.g}"></label><label>Chaser<input id="tc" value="${t.c}"></label></div><p class="small">Tip: paste any emoji.</p><label>Default game speed <select id="td"></select></label>
 <button class="ok" id="ts">Save theme</button></div>`;
 $('#tbody').querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{cfg.theme={...THEMES[b.dataset.k]};saveCfg();tT()});
-$('#ts').onclick=()=>{cfg.theme={...cfg.theme,wall:$('#tw').value,bg:$('#tb').value,p:$('#tp').value||'🙂',g:$('#tg').value||'⭐',c:$('#tc').value||'👾'};saveCfg();alert('Saved!')}}
+{const o=$('#td');curDiff=cfg.diff||'standard';fillDiff(o);o.onchange=()=>{curDiff=o.value}}
+$('#ts').onclick=()=>{cfg.diff=$('#td').value;cfg.theme={...cfg.theme,wall:$('#tw').value,bg:$('#tb').value,p:$('#tp').value||'🙂',g:$('#tg').value||'⭐',c:$('#tc').value||'👾'};saveCfg();alert('Saved!')}}
 function csv(){const rows=[['Student','Attempt','Date','Score','Stars','Result','Seconds','Missed questions','Wrong answers chosen']];
 logs.forEach(l=>rows.push([l.s,l.n,new Date(l.d).toLocaleString(),l.score,l.stars,l.win?'Won':'Lost',l.secs,l.missed.map(m=>m.q).join(' | '),l.missed.map(m=>m.ch).join(' | ')]));
 return rows.map(r=>r.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n')}
@@ -153,28 +154,35 @@ $('#csv').onclick=()=>{const t=csv();try{const a=document.createElement('a');a.h
 $('#csvbox').innerHTML='<p class="small">If no download started, copy the CSV below:</p><textarea rows="6" readonly id="cta"></textarea>';$('#cta').value=t;$('#cta').select()};
 $('#clr').onclick=()=>{if(confirm('Delete all attempt logs?')){logs=[];Store.set('logs',logs);tS()}}}
 /* ===== GAME ===== */
+/* ===== SPEED / DIFFICULTY =====
+   c = ms per chaser step, p = ms per player step (player is ~1.1x the chasers' speed on every level),
+   bp = player step while the correct-answer speed boost is active, sm = how "smart" (direct) chasers are. */
+const DIFF={relaxed:{n:'🌱 Relaxed / Explorer',c:300,p:270,bp:200,sm:.4},standard:{n:'⚡ Standard',c:220,p:200,bp:150,sm:.55},turbo:{n:'🚀 Turbo / Challenge',c:170,p:150,bp:115,sm:.7}};
+let curDiff='standard';
+const fillDiff=el=>{el.innerHTML=Object.entries(DIFF).map(([k,v])=>`<option value="${k}">${v.n}</option>`).join('');el.value=curDiff;el.onchange=()=>{curDiff=el.value;Store.set('diff',curDiff)}};
 const MAZE=["###############","#P.....#.....Q#","#.##.#...#.##.#","#....#.#.#....#","#.####.#.####.#","#Q.....C.....Q#","#.####.#.####.#","#....#.#.#....#","#.##.#...#.##.#","#.....#.#.....#","#.###.....###.#","#Q.....C.....Q#","###############"];
 const T=32,DIRS=[{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}],cv=$('#cv'),cx=cv.getContext('2d');let G=null;
 const shuffle=a=>a.map(x=>[Math.random(),x]).sort((p,q)=>p[0]-q[0]).map(p=>p[1]);
 function startGame(name){const g=MAZE.map(r=>r.split(''));let p,ch=[],gems=0;
 g.forEach((r,y)=>r.forEach((c,x)=>{if(c==='P'){p={x,y};r[x]=' '}else if(c==='C'){ch.push({x,y,sx:x,sy:y,d:{x:1,y:0}});r[x]=' '}else if(c==='.'||c==='Q')gems++}));
-G={name,g,px:p.x,py:p.y,sx:p.x,sy:p.y,dir:{x:0,y:0},want:{x:0,y:0},ch,lives:3,score:0,gems,qs:shuffle(cfg.qs),qi:0,sid:mkToken(),n:logs.filter(l=>l.s===name).length+1,missed:[],paused:false,over:false,ms:0,pa:0,ca:0,boost:0,freeze:0,inv:0};
+G={name,g,px:p.x,py:p.y,sx:p.x,sy:p.y,dir:{x:0,y:0},want:{x:0,y:0},ch,lives:3,score:0,gems,qs:shuffle(cfg.qs),qi:0,sid:mkToken(),diff:DIFF[curDiff]?curDiff:'standard',grace:1000,n:logs.filter(l=>l.s===name).length+1,missed:[],paused:false,over:false,ms:0,pa:0,ca:0,boost:0,freeze:0,inv:0};
 show('game');$('#modal').innerHTML='';cancelAnimationFrame(cfId);document.querySelectorAll('.pb').forEach(b=>b.hidden=!preview);{const c=$('#conf');c.getContext('2d').clearRect(0,0,c.width,c.height)}hud();music(true);cancelAnimationFrame(raf);last=performance.now();raf=requestAnimationFrame(loop)}
 const wall=(x,y)=>MAZE[y]?.[x]==='#'||MAZE[y]?.[x]===undefined;
 function hud(){$('#hs').textContent='⭐ '+G.score;$('#hl').textContent='❤️'.repeat(G.lives)||'💔';$('#hg').textContent='🎯 '+G.gems+' left'}
 function stepP(){const w=G.want,d=G.dir;if(!wall(G.px+w.x,G.py+w.y))G.dir={...w};else if(wall(G.px+d.x,G.py+d.y))return;
+if(!G.dir.x&&!G.dir.y)return;   /* standing still never re-triggers the tile under you */
 G.px+=G.dir.x;G.py+=G.dir.y;const c=G.g[G.py][G.px];
 if(c==='.'){G.g[G.py][G.px]=' ';G.score+=10;G.gems--;sfx.gem()}else if(c==='Q'){ask()}
 hud();chk();if(G.gems<=0&&!G.paused)finish(true)}
-function stepC(c){const ok=DIRS.filter(d=>!wall(c.x+d.x,c.y+d.y)),fw=ok.filter(d=>!(d.x===-c.d.x&&d.y===-c.d.y)),o=fw.length?fw:ok;
-const dist=d=>(c.x+d.x-G.px)**2+(c.y+d.y-G.py)**2,d=Math.random()<.6?[...o].sort((a,b)=>dist(a)-dist(b))[0]:o[Math.random()*o.length|0];c.x+=d.x;c.y+=d.y;c.d=d}
-function chk(){if(G.inv>0||G.freeze>0||G.paused)return;if(G.ch.some(c=>c.x===G.px&&c.y===G.py))lose()}
-function lose(){G.lives--;sfx.bad();G.px=G.sx;G.py=G.sy;G.dir={x:0,y:0};G.want={x:0,y:0};G.ch.forEach(c=>{c.x=c.sx;c.y=c.sy});G.inv=2000;hud();if(G.lives<=0)finish(false)}
+function stepC(c){const sm=DIFF[G.diff].sm;const ok=DIRS.filter(d=>!wall(c.x+d.x,c.y+d.y)),fw=ok.filter(d=>!(d.x===-c.d.x&&d.y===-c.d.y)),o=fw.length?fw:ok;
+const dist=d=>(c.x+d.x-G.px)**2+(c.y+d.y-G.py)**2,d=Math.random()<sm?[...o].sort((a,b)=>dist(a)-dist(b))[0]:o[Math.random()*o.length|0];c.x+=d.x;c.y+=d.y;c.d=d}
+function chk(){if(G.inv>0||G.freeze>0||G.paused||G.grace>0)return;if(G.ch.some(c=>c.x===G.px&&c.y===G.py))lose()}
+function lose(){G.lives--;sfx.bad();G.px=G.sx;G.py=G.sy;G.dir={x:0,y:0};G.want={x:0,y:0};G.ch.forEach(c=>{c.x=c.sx;c.y=c.sy});G.inv=2000;G.grace=1000;hud();if(G.lives<=0)finish(false)}
 let last=0,raf=0,cfId=0;
 function loop(t){if(!G||G.over)return;const dt=Math.min(60,t-last);last=t;
-if(!G.paused){G.ms+=dt;G.pa+=dt;const ps=G.boost>0?110:170;while(G.pa>=ps&&!G.paused){G.pa-=ps;stepP()}
-if(G.freeze<=0){G.ca+=dt;while(G.ca>=300){G.ca-=300;G.ch.forEach(stepC);chk()}}
-G.boost=Math.max(0,G.boost-dt);G.freeze=Math.max(0,G.freeze-dt);G.inv=Math.max(0,G.inv-dt)}
+if(!G.paused){G.ms+=dt;G.pa+=dt;const D=DIFF[G.diff],ps=G.boost>0?D.bp:D.p;while(G.pa>=ps&&!G.paused){G.pa-=ps;stepP()}
+if(G.freeze<=0&&G.grace<=0){G.ca+=dt;while(G.ca>=D.c){G.ca-=D.c;G.ch.forEach(stepC);chk()}}
+G.boost=Math.max(0,G.boost-dt);G.freeze=Math.max(0,G.freeze-dt);G.inv=Math.max(0,G.inv-dt);G.grace=Math.max(0,G.grace-dt)}
 draw();raf=requestAnimationFrame(loop)}
 function draw(){const th=cfg.theme;cx.fillStyle=th.bg;cx.fillRect(0,0,480,416);cx.textAlign='center';cx.textBaseline='middle';
 G.g.forEach((r,y)=>r.forEach((c,x)=>{const X=x*T,Y=y*T;if(c==='#'){cx.fillStyle=th.wall;cx.beginPath();cx.roundRect(X+2,Y+2,T-4,T-4,8);cx.fill()}
@@ -182,6 +190,7 @@ else if(c==='.'){cx.font='14px serif';cx.fillText(th.g,X+16,Y+17)}
 else if(c==='Q'){cx.fillStyle='rgba(255,215,0,'+(.5+.4*Math.sin(performance.now()/200))+')';cx.beginPath();cx.arc(X+16,Y+16,14,0,7);cx.fill();cx.font='18px serif';cx.fillText('❓',X+16,Y+17)}}));
 cx.font='24px serif';G.ch.forEach(c=>{cx.globalAlpha=G.freeze>0?.5:1;cx.fillText(G.freeze>0?'🧊':th.c,c.x*T+16,c.y*T+17)});
 cx.globalAlpha=G.inv>0&&Math.floor(G.inv/150)%2?.3:1;cx.fillText(th.p,G.px*T+16,G.py*T+17);cx.globalAlpha=1;
+if(G.grace>0){cx.font='bold 18px sans-serif';cx.fillStyle=th.wall;cx.fillText('Get ready…',360,404)}
 if(G.boost>0){cx.font='12px sans-serif';cx.fillStyle=th.wall;cx.fillText('⚡ SPEED',60,404)}}
 /* ===== QUESTIONS ===== */
 const LBL={mcq:'🌟 Portal question!',complete:'✏️ Complete the sentence',give_reason:'💡 Give a reason',what_happens:'🔮 What happens?',correct:'🔧 Fix the mistake'};
@@ -205,9 +214,9 @@ const done=(ok,sa,model,html)=>{
  if(ok||ty==='mcq'){G.g[qy][qx]=' ';G.gems--;G.score+=ok?70:20}   /* written wrong answer: door (tile) stays locked */
  if(ok){sfx.good();G.boost=6000;G.freeze=5000;if(ty!=='mcq')confetti()}
  else{sfx.bad();$('#qc').classList.add('wob');G.lives--;G.missed.push({type:ty,q:q.q,ch:sa,ok:model,e:q.e||''})}
- hud();sync({ts:new Date().toISOString(),sessionId:G.sid,student:G.name,attempt:G.n,type:ty,question:q.q,studentAnswer:sa,modelAnswer:model,passed:ok});
+ hud();sync({ts:new Date().toISOString(),sessionId:G.sid,student:G.name,attempt:G.n,type:ty,question:q.q,studentAnswer:sa,modelAnswer:model,passed:ok,difficulty:G.diff});
  $('#fb').innerHTML=html+'<button class="ok" id="cont">Continue ▶</button>';
- $('#cont').onclick=()=>{$('#modal').innerHTML='';G.paused=false;if(G.lives<=0)return finish(false);if(!ok)G.inv=1500;hud();if(G.gems<=0)finish(true)}};
+ $('#cont').onclick=()=>{$('#modal').innerHTML='';G.paused=false;G.pa=0;G.ca=0;G.grace=1000;G.inv=Math.max(G.inv,1000);last=performance.now();if(G.lives<=0)return finish(false);if(!ok)G.inv=1500;hud();if(G.gems<=0)finish(true)}};
 if(ty==='mcq')$('#modal').querySelectorAll('.ch').forEach(b=>b.onclick=()=>{const i=+b.dataset.i,ok=i===q.a;$('#modal').querySelectorAll('.ch').forEach(x=>{x.disabled=true;if(+x.dataset.i===q.a)x.classList.add('right')});if(!ok)b.classList.add('wrong');
  done(ok,q.c[i],q.c[q.a],ok?'<h3>🎉 Correct! Speed boost + chasers frozen!</h3>':`<h3>Oops, not quite! 💪</h3><p>The answer is <b>${esc(q.c[q.a])}</b>. ${esc(q.e)}</p>`)});
 else $('#sub').onclick=()=>{const v=$('#ans').value.trim();if(!v)return;$('#ans').disabled=true;$('#sub').remove();const r=grade(q,v),hl=hlight(v,r.alts);
@@ -216,8 +225,8 @@ else $('#sub').onclick=()=>{const v=$('#ans').value.trim();if(!v)return;$('#ans'
    finish() pushes one record per run to logs (attempt index = previous runs by this student + 1).
    The teacher's Analytics tab reads the same Store, groups by student and aggregates the `missed` arrays. */
 function finish(win){if(G.over)return;G.over=true;music(false);$('#modal').innerHTML='';const stars=win?Math.max(1,G.lives):(G.score>=100?1:0),secs=Math.round(G.ms/1000);
-if(!preview){const n=logs.filter(l=>l.s===G.name).length+1;logs.push({s:G.name,n,d:Date.now(),score:G.score,stars,win,secs,missed:G.missed});Store.set('logs',logs)}
-win?sfx.win():sfx.bad();show('end');$('#etitle').textContent=win?'🏆 You did it!':'Good try! 💪';$('#estars').textContent='⭐'.repeat(stars)+'☆'.repeat(3-stars);$('#escore').textContent='Score '+G.score+' · '+secs+'s'+(preview?' (preview, not logged)':'');
+if(!preview){const n=logs.filter(l=>l.s===G.name).length+1;logs.push({s:G.name,n,d:Date.now(),score:G.score,stars,win,secs,diff:G.diff,missed:G.missed});Store.set('logs',logs)}
+win?sfx.win():sfx.bad();show('end');fillDiff($('#ediff'));$('#etitle').textContent=win?'🏆 You did it!':'Good try! 💪';$('#estars').textContent='⭐'.repeat(stars)+'☆'.repeat(3-stars);$('#escore').textContent='Score '+G.score+' · '+secs+'s'+(preview?' (preview, not logged)':'');
 $('#erev').innerHTML=G.missed.length?'<h3>Questions to review</h3>'+G.missed.map(m=>`<p>❓ <b>${esc(m.q)}</b><br>✅ ${esc(m.ok)}<br><span class="small">${esc(m.e)}</span></p>`).join(''):'<p class="center">Perfect answers! 🌈</p>';
 if(win)confetti()}
 document.querySelectorAll('.pb').forEach(b=>b.onclick=()=>{if(G)G.over=true;music(false);$('#modal').innerHTML='';preview=false;show('teacher')});
@@ -233,6 +242,6 @@ cv.addEventListener('touchend',e=>{if(!ts||!G||G.paused||G.over)return;const t=e
 /* ===== ENTRY GATE ===== */
 const hasLink=['student','code','sig','token','d'].some(k=>params.has(k));
 if(hasLink){$('#home').hidden=true;(async()=>{let n=null;try{n=await verify()}catch(e){n=null}
-if(!n)return show('denied');show('gate');student=n;preview=false;$('#gname').value=n;
+if(!n)return show('denied');show('gate');student=n;preview=false;curDiff=Store.get('diff',cfg.diff||'standard');fillDiff($('#gdiff'));$('#gname').value=n;
 $('#gstart').onclick=()=>{try{AC=AC||new(window.AudioContext||window.webkitAudioContext)()}catch(e){}sound=$('#gsnd').checked;$('#mute').textContent=sound?'🔊':'🔇';startGame($('#gname').value.trim()||n)}})()}
 </script></body></html>
